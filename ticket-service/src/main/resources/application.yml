@@ -1,0 +1,10 @@
+spring:
+  config:
+    import:
+      - classpath:properties/application-db.yml
+      - classpath:properties/application-logging.yml
+      - classpath:properties/application-server.yml
+      - classpath:properties/application-kafka.yml
+      - classpath:properties/application-redis.yml
+
+
