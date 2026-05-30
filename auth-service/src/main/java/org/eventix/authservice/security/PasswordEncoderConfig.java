@@ -1,4 +1,4 @@
-package org.eventix.authservice.config;
+package org.eventix.authservice.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -46,4 +46,17 @@ public class GlobalExceptionHandler {
                 request
         );
     }
+
+    @ExceptionHandler(JwtAuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleJwtException(
+            JwtAuthenticationException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(
+                ex,
+                HttpStatus.UNAUTHORIZED,
+                "Unauthorized",
+                request
+        );
+    }
 }
