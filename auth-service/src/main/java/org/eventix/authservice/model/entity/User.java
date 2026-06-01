@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.eventix.authservice.model.enums.UserRole;
+import org.eventix.authservice.model.enums.UserStatus;
 
 import java.time.LocalDateTime;
 
@@ -32,8 +33,17 @@ public class User {
     @Column(nullable = false)
     UserRole role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    UserStatus status;
+
     @Column(nullable = false, updatable = false)
     LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+    }
 
 }
 

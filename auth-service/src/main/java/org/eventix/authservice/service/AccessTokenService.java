@@ -7,10 +7,8 @@ import org.springframework.stereotype.Service;
 import java.util.Set;
 
 @Service
-public interface JwtService {
+public interface AccessTokenService {
     String generateAccessToken(String userId, Set<UserRole> roles);
-
-    boolean isTokenValid(String token);
 
     JwtClaims extractClaims(String token);
 }

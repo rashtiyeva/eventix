@@ -2,6 +2,9 @@ package org.eventix.authservice.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.eventix.authservice.exception.base.AccessTokenException;
+import org.eventix.authservice.exception.base.NotFoundException;
+import org.eventix.authservice.exception.base.RefreshTokenException;
 import org.eventix.authservice.model.dto.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,9 +50,9 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(JwtAuthenticationException.class)
+    @ExceptionHandler(AccessTokenAuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleJwtException(
-            JwtAuthenticationException ex,
+            AccessTokenAuthenticationException ex,
             HttpServletRequest request
     ) {
         return buildErrorResponse(
@@ -59,4 +62,40 @@ public class GlobalExceptionHandler {
                 request
         );
     }
+    @ExceptionHandler(AccessTokenException.class)
+    public ResponseEntity<ErrorResponse> handleAccessTokenException(
+            AccessTokenException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(
+                ex,
+                HttpStatus.UNAUTHORIZED,
+                "Access token error",
+                request
+        );
+    }
+
+    @ExceptionHandler(RefreshTokenException.class)
+    public ResponseEntity<ErrorResponse> handleRefreshTokenException(
+            RefreshTokenException ex,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(
+                ex,
+                HttpStatus.UNAUTHORIZED,
+                "Refresh token error",
+                request
+        );
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFoundException(
+            NotFoundException ex,
+            HttpServletRequest request) {
+        return buildErrorResponse(ex,
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                request);
+    }
 }
+

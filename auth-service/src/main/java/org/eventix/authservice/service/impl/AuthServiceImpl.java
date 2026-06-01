@@ -9,14 +9,19 @@ import org.eventix.authservice.mapper.AuthMapper;
 import org.eventix.authservice.model.dto.request.LoginRequest;
 import org.eventix.authservice.model.dto.request.RegisterRequest;
 import org.eventix.authservice.model.dto.response.AuthResponse;
+import org.eventix.authservice.model.dto.response.RefreshTokenResponse;
 import org.eventix.authservice.model.entity.User;
 import org.eventix.authservice.model.enums.UserRole;
 import org.eventix.authservice.repository.UserRepository;
+import org.eventix.authservice.service.AccessTokenService;
 import org.eventix.authservice.service.AuthService;
+import org.eventix.authservice.service.RefreshTokenService;
+import org.eventix.authservice.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -26,19 +31,22 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthMapper authMapper;
-
+    private final AccessTokenService accessTokenService;
+    private final RefreshTokenService refreshTokenService;
+    private final UserService userService;
 
     @Transactional
     @Override
-    public AuthResponse register (RegisterRequest registerRequest){
+    public AuthResponse register(RegisterRequest registerRequest, String sessionId){
 
         validateEmail(registerRequest.email());
         User user = createUser(registerRequest);
         User savedUser = userRepository.save(user);
-        return buildAuthResponse(savedUser);
+        return buildAuthResponse(savedUser, sessionId);
     }
 
-    public AuthResponse login(LoginRequest request) {
+    @Override
+    public AuthResponse login(LoginRequest request, String sessionId) {
 
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(InvalidCredentialsException::new);
@@ -47,7 +55,7 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidCredentialsException();
         }
 
-        return buildAuthResponse(user);
+        return buildAuthResponse(user, sessionId);
     }
 
     private User createUser(RegisterRequest request) {
@@ -67,13 +75,22 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private AuthResponse buildAuthResponse(User user) {
+    private AuthResponse buildAuthResponse(User user, String sessionId) {
+
+        String accessToken = accessTokenService.generateAccessToken(
+                user.getId().toString(),
+                Set.of(user.getRole())
+        );
+
+        RefreshTokenResponse refreshTokenResponse =
+                refreshTokenService.createToken(user, sessionId);
+
+        String refreshToken = refreshTokenResponse.refreshToken();
 
         return new AuthResponse(
-                "access-token-placeholder",
-                "refresh-token-placeholder",
+                accessToken,
+                refreshToken,
                 authMapper.mapToUserResponse(user)
         );
     }
-
 }

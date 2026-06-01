@@ -5,22 +5,23 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.eventix.authservice.exception.JwtAuthenticationException;
+import org.eventix.authservice.exception.AccessTokenAuthenticationException;
+import org.eventix.authservice.exception.ExpiredAccessTokenException;
+import org.eventix.authservice.exception.InvalidAccessTokenException;
 import org.eventix.authservice.mapper.JwtMapper;
 import org.eventix.authservice.model.enums.UserRole;
 import org.eventix.authservice.security.JwtClaims;
 import org.eventix.authservice.security.JwtProperties;
-import org.eventix.authservice.service.JwtService;
+import org.eventix.authservice.service.AccessTokenService;
 import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class JwtServiceImpl implements JwtService {
+public class AccessTokenServiceImpl implements AccessTokenService {
 
     private final JwtProperties jwtProperties;
     private final SecretKey signingKey;
@@ -30,20 +31,14 @@ public class JwtServiceImpl implements JwtService {
     public String generateAccessToken(String userId, Set<UserRole> roles) {
 
         Instant now = Instant.now();
+        Instant expiration = now.plus(jwtProperties.accessExpiration());
 
         return Jwts.builder()
                 .id(UUID.randomUUID().toString())
                 .subject(userId)
                 .issuer(jwtProperties.issuer())
                 .issuedAt(Date.from(now))
-                .expiration(
-                        Date.from(
-                                now.plus(
-                                        jwtProperties.accessExpirationMinutes(),
-                                        ChronoUnit.MINUTES
-                                )
-                        )
-                )
+                .expiration(Date.from(expiration))
                 .claim(JwtClaims.ROLES, jwtMapper.toClaimsRoles(roles))
                 .signWith(signingKey, Jwts.SIG.HS256)
                 .compact();
@@ -64,21 +59,15 @@ public class JwtServiceImpl implements JwtService {
                     roles
             );
 
-        } catch (JwtException ex) {
-            log.debug("Invalid JWT while extracting claims");
-            throw new JwtAuthenticationException("Invalid JWT token");
-        }
-    }
+        } catch (io.jsonwebtoken.ExpiredJwtException ex) {
 
-    @Override
-    public boolean isTokenValid(String token) {
-        try {
-            parseClaims(token);
-            return true;
+            log.debug("Access token expired");
+            throw new ExpiredAccessTokenException();
 
-        } catch (JwtException ex) {
-            log.debug("JWT validation failed");
-            return false;
+        } catch (io.jsonwebtoken.JwtException ex) {
+
+            log.debug("Invalid access token");
+            throw new InvalidAccessTokenException();
         }
     }
 
