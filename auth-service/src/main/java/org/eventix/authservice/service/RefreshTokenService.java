@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public interface RefreshTokenService {
 
-    RefreshTokenResponse createToken(User user, String sessionId);
+    RefreshTokenResponse createToken(User user,  String sessionId);
 
     @Transactional
     RefreshTokenResponse refresh(String rawToken, String sessionId, User user);

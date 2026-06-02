@@ -1,11 +1,9 @@
 package org.eventix.authservice.service.impl;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.eventix.authservice.exception.AccessTokenAuthenticationException;
 import org.eventix.authservice.exception.ExpiredAccessTokenException;
 import org.eventix.authservice.exception.InvalidAccessTokenException;
 import org.eventix.authservice.mapper.JwtMapper;

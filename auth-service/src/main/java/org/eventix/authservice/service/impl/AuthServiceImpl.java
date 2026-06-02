@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -33,27 +34,29 @@ public class AuthServiceImpl implements AuthService {
     private final AuthMapper authMapper;
     private final AccessTokenService accessTokenService;
     private final RefreshTokenService refreshTokenService;
-    private final UserService userService;
 
     @Transactional
     @Override
-    public AuthResponse register(RegisterRequest registerRequest, String sessionId){
+    public AuthResponse register(RegisterRequest registerRequest){
 
         validateEmail(registerRequest.email());
         User user = createUser(registerRequest);
         User savedUser = userRepository.save(user);
+        String sessionId = UUID.randomUUID().toString();
         return buildAuthResponse(savedUser, sessionId);
     }
 
     @Override
-    public AuthResponse login(LoginRequest request, String sessionId) {
+    public AuthResponse login(LoginRequest loginRequest) {
 
-        User user = userRepository.findByEmail(request.email())
+        User user = userRepository.findByEmail(loginRequest.email())
                 .orElseThrow(InvalidCredentialsException::new);
 
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+        if (!passwordEncoder.matches(loginRequest.password(), user.getPassword())) {
             throw new InvalidCredentialsException();
         }
+
+        String sessionId = UUID.randomUUID().toString();
 
         return buildAuthResponse(user, sessionId);
     }

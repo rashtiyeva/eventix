@@ -1,6 +1,5 @@
 package org.eventix.authservice.service;
 
-
 import jakarta.transaction.Transactional;
 import org.eventix.authservice.model.dto.request.LoginRequest;
 import org.eventix.authservice.model.dto.request.RegisterRequest;
@@ -11,9 +10,7 @@ import org.springframework.stereotype.Service;
 public interface AuthService {
 
     @Transactional
-    AuthResponse register(RegisterRequest registerRequest, String sessionId);
+    AuthResponse register(RegisterRequest registerRequest);
 
-    AuthResponse login(LoginRequest request, String sessionId);
+    AuthResponse login(LoginRequest loginRequest);
 }
-
-//TODO: remove sessionId

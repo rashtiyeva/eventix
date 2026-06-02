@@ -21,11 +21,11 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody @Valid RegisterRequest request, String sessionId) {
-        return ResponseEntity.ok(authService.register(request, sessionId));
+        return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody @Valid LoginRequest request, String sessionId) {
-        return ResponseEntity.ok(authService.login(request, sessionId));
+        return ResponseEntity.ok(authService.login(request));
     }
 }
