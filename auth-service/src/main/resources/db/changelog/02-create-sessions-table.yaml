@@ -1,0 +1,48 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 02-create-sessions-table
+      author: auth-service
+      changes:
+
+        - createTable:
+            tableName: sessions
+            columns:
+
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: last_used_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: ip_address
+                  type: VARCHAR(255)
+
+              - column:
+                  name: user_agent
+                  type: VARCHAR(512)

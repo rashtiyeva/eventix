@@ -6,14 +6,15 @@ import lombok.experimental.FieldDefaults;
 import java.time.Instant;
 
 @Entity
-@Table(
-        name = "refresh_tokens",
-        indexes = {
-                @Index(name = "idx_refresh_token_hash", columnList = "token_hash"),
-                @Index(name = "idx_refresh_user", columnList = "user_id"),
-                @Index(name = "idx_refresh_session", columnList = "session_id")
-        }
-)
+//@Table(
+//        name = "refresh_tokens",
+//        indexes = {
+//                @Index(name = "idx_refresh_token_hash", columnList = "token_hash"),
+//                @Index(name = "idx_refresh_user", columnList = "user_id"),
+//                @Index(name = "idx_refresh_session", columnList = "session_id")
+//        }
+//)
+@Table(name = "refresh_tokens")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -28,8 +29,9 @@ public class RefreshToken {
     @Column(name ="token_hash", nullable = false, unique = true, length = 44)
     String tokenHash;
 
-    @Column(name = "session_id", nullable = false)
-    private String sessionId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "session_id")
+    Session session;
 
     @Column(nullable = false)
     Instant expiresAt;

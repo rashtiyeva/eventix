@@ -6,12 +6,13 @@ import lombok.RequiredArgsConstructor;
 import org.eventix.authservice.model.dto.request.LoginRequest;
 import org.eventix.authservice.model.dto.request.RegisterRequest;
 import org.eventix.authservice.model.dto.response.AuthResponse;
+import org.eventix.authservice.model.entity.Session;
+import org.eventix.authservice.model.entity.User;
+import org.eventix.authservice.security.UserPrincipal;
 import org.eventix.authservice.service.AuthService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/v1/auth")
@@ -35,4 +36,21 @@ public class AuthController {
     ) {
         return ResponseEntity.ok(authService.login(request, httpRequest));
     }
-}
+    @PostMapping("/logout/{sessionId}")
+    public ResponseEntity<Void> logout(
+            @PathVariable String sessionId,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        authService.logout(sessionId, principal.getUserId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/logout-all")
+    public ResponseEntity<Void> logoutAll(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        authService.logoutAll(principal.getUserId());
+        return ResponseEntity.noContent().build();
+    }
+
+    }

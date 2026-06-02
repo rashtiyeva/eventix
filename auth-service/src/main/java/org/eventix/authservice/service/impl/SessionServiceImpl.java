@@ -1,12 +1,15 @@
 package org.eventix.authservice.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.eventix.authservice.exception.SessionNotActiveException;
+import org.eventix.authservice.exception.SessionNotFoundException;
 import org.eventix.authservice.model.entity.Session;
 import org.eventix.authservice.model.entity.User;
 import org.eventix.authservice.model.enums.SessionStatus;
 import org.eventix.authservice.repository.SessionRepository;
 import org.eventix.authservice.service.SessionService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -21,7 +24,7 @@ public class SessionServiceImpl implements SessionService {
 
         Session session = Session.builder()
                 .id(UUID.randomUUID().toString())
-                .userId(user.getId())
+                .user(user)
                 .status(SessionStatus.ACTIVE)
                 .createdAt(Instant.now())
                 .lastUsedAt(Instant.now())
@@ -33,29 +36,32 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
-    public Session getActiveSession(String sessionId) {
+    public Session getActiveSession(Session session) {
 
-        return sessionRepository.findById(sessionId)
-                .filter(s -> s.getStatus() == SessionStatus.ACTIVE)
-                .orElseThrow();
+        Session fresh = sessionRepository.findById(session.getId())
+                .orElseThrow(() -> new SessionNotFoundException(session.getId()));
+
+        if (fresh.getStatus() != SessionStatus.ACTIVE) {
+            throw new SessionNotActiveException(session.getId());
+        }
+
+        return fresh;
     }
 
     @Override
-    public void revoke(String sessionId) {
+    public void revoke(Session session) {
 
-        Session session = sessionRepository.findById(sessionId)
-                .orElseThrow();
+        Session fresh = sessionRepository.findById(session.getId())
+                .orElseThrow(() -> new SessionNotFoundException(session.getId()));
 
-        session.setStatus(SessionStatus.REVOKED);
-        sessionRepository.save(session);
+        fresh.setStatus(SessionStatus.REVOKED);
+
+        sessionRepository.save(fresh);
     }
 
     @Override
+    @Transactional
     public void revokeAll(Long userId) {
-
-        sessionRepository.findAllByUserId(userId)
-                .forEach(s -> s.setStatus(SessionStatus.REVOKED));
-
-        sessionRepository.flush();
+        sessionRepository.updateStatusByUserId(userId, SessionStatus.REVOKED);
     }
 }

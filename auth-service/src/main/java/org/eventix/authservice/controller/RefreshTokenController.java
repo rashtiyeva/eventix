@@ -28,7 +28,7 @@ public class RefreshTokenController {
 
         RefreshTokenResponse response = refreshTokenService.createToken(
                 request.user(),
-                request.sessionId()
+                request.session()
         );
 
         return ResponseEntity.ok(response);
@@ -41,7 +41,7 @@ public class RefreshTokenController {
 
         RefreshTokenResponse response = refreshTokenService.refresh(
                 request.refreshToken(),
-                request.sessionId(),
+                request.session(),
                 request.user()
         );
 
@@ -55,7 +55,7 @@ public class RefreshTokenController {
 
         boolean valid = refreshTokenService.validate(
                 request.refreshToken(),
-                request.sessionId(),
+                request.session(),
                 request.user()
         );
 
@@ -69,7 +69,7 @@ public class RefreshTokenController {
             @Valid @RequestBody RevokeUserRefreshTokenRequest request
     ) {
 
-        refreshTokenService.revokeAll(request.user());
+        refreshTokenService.revokeAll(request.user().getId());
 
         return ResponseEntity.noContent().build();
     }
@@ -80,7 +80,7 @@ public class RefreshTokenController {
     ) {
 
         refreshTokenService.revokeSession(
-                request.user(),
+                request.userId(),
                 request.sessionId()
         );
 

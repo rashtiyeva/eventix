@@ -20,8 +20,9 @@ public class Session {
     @Column(length = 36)
     String id;
 
-    @Column(nullable = false)
-    Long userId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    User user;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

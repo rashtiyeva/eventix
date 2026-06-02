@@ -1,6 +1,7 @@
 package org.eventix.authservice.repository;
 
 import org.eventix.authservice.model.entity.RefreshToken;
+import org.eventix.authservice.model.entity.Session;
 import org.eventix.authservice.model.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -8,15 +9,21 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Optional;import org.eventix.authservice.model.entity.RefreshToken;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.Instant;
 import java.util.Optional;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
 
-    Optional<RefreshToken> findByTokenHashAndSessionId(
+    Optional<RefreshToken> findByTokenHashAndSession_IdAndUser_Id(
             String tokenHash,
-            String sessionId
+            String sessionId,
+            Long userId
     );
 
     @Modifying
@@ -24,11 +31,11 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
             update RefreshToken rt
             set rt.revoked = true,
                 rt.updatedAt = :now
-            where rt.user = :user
+            where rt.user.id = :userId
               and rt.revoked = false
             """)
-    int revokeAllByUser(
-            @Param("user") User user,
+    int revokeAllByUserId(
+            @Param("userId") Long userId,
             @Param("now") Instant now
     );
 
@@ -37,14 +44,13 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
             update RefreshToken rt
             set rt.revoked = true,
                 rt.updatedAt = :now
-            where rt.user = :user
-              and rt.sessionId = :sessionId
+            where rt.user.id = :userId
+              and rt.session.id = :sessionId
               and rt.revoked = false
             """)
-    int revokeByUserAndSession(
-            @Param("user") User user,
+    int revokeByUserAndSessionId(
+            @Param("userId") Long userId,
             @Param("sessionId") String sessionId,
             @Param("now") Instant now
     );
-
 }

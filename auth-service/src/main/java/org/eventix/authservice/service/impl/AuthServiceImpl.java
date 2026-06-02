@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eventix.authservice.exception.EmailAlreadyExistsException;
 import org.eventix.authservice.exception.InvalidCredentialsException;
+import org.eventix.authservice.exception.SessionNotFoundException;
+import org.eventix.authservice.exception.UserNotFoundException;
 import org.eventix.authservice.mapper.AuthMapper;
 import org.eventix.authservice.model.dto.request.LoginRequest;
 import org.eventix.authservice.model.dto.request.RegisterRequest;
@@ -13,16 +15,18 @@ import org.eventix.authservice.model.dto.response.AuthResponse;
 import org.eventix.authservice.model.dto.response.RefreshTokenResponse;
 import org.eventix.authservice.model.entity.Session;
 import org.eventix.authservice.model.entity.User;
+import org.eventix.authservice.model.enums.SessionStatus;
 import org.eventix.authservice.model.enums.UserRole;
+import org.eventix.authservice.model.enums.UserStatus;
+import org.eventix.authservice.repository.SessionRepository;
 import org.eventix.authservice.repository.UserRepository;
 import org.eventix.authservice.service.*;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +39,7 @@ public class AuthServiceImpl implements AuthService {
     private final AccessTokenService accessTokenService;
     private final RefreshTokenService refreshTokenService;
     private final SessionService sessionService;
+    private final SessionRepository sessionRepository;
 
     @Transactional
     @Override
@@ -65,13 +70,43 @@ public class AuthServiceImpl implements AuthService {
         return buildAuthResponse(user, session.getId());
     }
 
-    private User createUser(RegisterRequest request) {
+    @Transactional
+    @Override
+    public void logout(String sessionId, Long userId) {
 
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new SessionNotFoundException(sessionId));
+
+        if (!session.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("Session does not belong to user");
+        }
+
+        session.setStatus(SessionStatus.REVOKED);
+        sessionRepository.save(session);
+
+        refreshTokenService.revokeSession(
+                session.getUser().getId(),
+                session.getId()
+        );
+
+        log.info("User {} logged out from session {}", userId, sessionId);
+    }
+
+    @Transactional
+    @Override
+    public void logoutAll(Long userId) {
+
+        sessionService.revokeAll(userId);
+        refreshTokenService.revokeAll(userId);
+
+        log.info("User {} logged out from all devices", userId);
+    }
+    private User createUser(RegisterRequest request) {
         return User.builder()
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
                 .role(UserRole.BUYER)
-                .createdAt(LocalDateTime.now())
+                .status(UserStatus.ACTIVE)
                 .build();
     }
 
@@ -84,19 +119,20 @@ public class AuthServiceImpl implements AuthService {
 
     private AuthResponse buildAuthResponse(User user, String sessionId) {
 
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new SessionNotFoundException(sessionId));
+
         String accessToken = accessTokenService.generateAccessToken(
                 user.getId().toString(),
                 Set.of(user.getRole())
         );
 
         RefreshTokenResponse refreshTokenResponse =
-                refreshTokenService.createToken(user, sessionId);
-
-        String refreshToken = refreshTokenResponse.refreshToken();
+                refreshTokenService.createToken(user, session);
 
         return new AuthResponse(
                 accessToken,
-                refreshToken,
+                refreshTokenResponse.refreshToken(),
                 authMapper.mapToUserResponse(user)
         );
     }

@@ -1,0 +1,29 @@
+databaseChangeLog:
+
+  - include:
+      file: db/changelog/01-create-users-table.yaml
+
+  - include:
+      file: db/changelog/02-create-sessions-table.yaml
+
+  - include:
+      file: db/changelog/03-sessions-fk.yaml
+
+  - include:
+      file: db/changelog/04-sessions-indexes.yaml
+
+  - include:
+      file: db/changelog/05-create-refresh-tokens-table.yaml
+
+  - include:
+      file: db/changelog/06-refresh-tokens-fk.yaml
+
+  - include:
+      file: db/changelog/07-refresh-tokens-session-fk.yaml
+
+  - include:
+      file: db/changelog/08-create-refresh-tokens-indexes.yaml
+
+
+
+

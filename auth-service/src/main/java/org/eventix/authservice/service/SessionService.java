@@ -9,9 +9,9 @@ public interface SessionService {
 
     Session create(User user, String ip, String userAgent);
 
-    Session getActiveSession(String sessionId);
+    Session getActiveSession(Session session);
 
-    void revoke(String sessionId);
+    void revoke(Session session);
 
     void revokeAll(Long userId);
 }

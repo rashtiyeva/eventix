@@ -1,0 +1,28 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 08-refresh-tokens-indexes
+      author: auth-service
+
+      changes:
+
+        - createIndex:
+            indexName: idx_refresh_token_hash
+            tableName: refresh_tokens
+            columns:
+              - column:
+                  name: token_hash
+
+        - createIndex:
+            indexName: idx_refresh_user
+            tableName: refresh_tokens
+            columns:
+              - column:
+                  name: user_id
+
+        - createIndex:
+            indexName: idx_refresh_session
+            tableName: refresh_tokens
+            columns:
+              - column:
+                  name: session_id

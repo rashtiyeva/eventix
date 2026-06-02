@@ -7,6 +7,7 @@ import lombok.experimental.FieldDefaults;
 import org.eventix.authservice.model.enums.UserRole;
 import org.eventix.authservice.model.enums.UserStatus;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -38,12 +39,22 @@ public class User {
     UserStatus status;
 
     @Column(nullable = false, updatable = false)
-    LocalDateTime createdAt;
+    Instant createdAt;
+
+    @Column(nullable = false)
+    private Instant updatedAt;
 
     @PrePersist
     public void prePersist() {
-        this.createdAt = LocalDateTime.now();
+        Instant now = Instant.now();
+        this.createdAt = now;
+        this.updatedAt = now;
     }
 
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = Instant.now();
+
+    }
 }
 
