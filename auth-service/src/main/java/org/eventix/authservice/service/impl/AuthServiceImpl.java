@@ -1,5 +1,6 @@
 package org.eventix.authservice.service.impl;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,17 +11,16 @@ import org.eventix.authservice.model.dto.request.LoginRequest;
 import org.eventix.authservice.model.dto.request.RegisterRequest;
 import org.eventix.authservice.model.dto.response.AuthResponse;
 import org.eventix.authservice.model.dto.response.RefreshTokenResponse;
+import org.eventix.authservice.model.entity.Session;
 import org.eventix.authservice.model.entity.User;
 import org.eventix.authservice.model.enums.UserRole;
 import org.eventix.authservice.repository.UserRepository;
-import org.eventix.authservice.service.AccessTokenService;
-import org.eventix.authservice.service.AuthService;
-import org.eventix.authservice.service.RefreshTokenService;
-import org.eventix.authservice.service.UserService;
+import org.eventix.authservice.service.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -34,31 +34,35 @@ public class AuthServiceImpl implements AuthService {
     private final AuthMapper authMapper;
     private final AccessTokenService accessTokenService;
     private final RefreshTokenService refreshTokenService;
+    private final SessionService sessionService;
 
     @Transactional
     @Override
-    public AuthResponse register(RegisterRequest registerRequest){
+    public AuthResponse register(RegisterRequest request, HttpServletRequest httpRequest){
 
-        validateEmail(registerRequest.email());
-        User user = createUser(registerRequest);
+        validateEmail(request.email());
+
+        User user = createUser(request);
         User savedUser = userRepository.save(user);
-        String sessionId = UUID.randomUUID().toString();
-        return buildAuthResponse(savedUser, sessionId);
+
+        Session session = createSession(savedUser, httpRequest);
+
+        return buildAuthResponse(savedUser, session.getId());
     }
 
     @Override
-    public AuthResponse login(LoginRequest loginRequest) {
+    public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
 
-        User user = userRepository.findByEmail(loginRequest.email())
+        User user = userRepository.findByEmail(request.email())
                 .orElseThrow(InvalidCredentialsException::new);
 
-        if (!passwordEncoder.matches(loginRequest.password(), user.getPassword())) {
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new InvalidCredentialsException();
         }
 
-        String sessionId = UUID.randomUUID().toString();
+        Session session = createSession(user, httpRequest);
 
-        return buildAuthResponse(user, sessionId);
+        return buildAuthResponse(user, session.getId());
     }
 
     private User createUser(RegisterRequest request) {
@@ -95,5 +99,18 @@ public class AuthServiceImpl implements AuthService {
                 refreshToken,
                 authMapper.mapToUserResponse(user)
         );
+    }
+
+    private Session createSession(User user, HttpServletRequest request) {
+
+        String ip = getClientIp(request);
+        String userAgent = Optional.ofNullable(request.getHeader("User-Agent"))
+                .orElse("unknown");
+
+        return sessionService.create(user, ip, userAgent);
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        return request.getRemoteAddr();
     }
 }
