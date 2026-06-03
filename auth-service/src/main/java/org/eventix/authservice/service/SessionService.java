@@ -9,7 +9,7 @@ public interface SessionService {
 
     Session create(User user, String ip, String userAgent);
 
-    Session getActiveSession(Session session);
+    Session getActiveSession(String sessionId);
 
     void revoke(Session session);
 

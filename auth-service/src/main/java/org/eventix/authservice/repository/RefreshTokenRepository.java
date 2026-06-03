@@ -11,11 +11,10 @@ import java.util.Optional;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
 
-    Optional<RefreshToken> findByTokenHashAndSession_IdAndUser_IdAndStatus(
+    Optional<RefreshToken> findByTokenHashAndSession_IdAndUser_Id(
             String tokenHash,
             String sessionId,
-            Long userId,
-            RefreshTokenStatus status
+            Long userId
     );
 
     @Modifying

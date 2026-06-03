@@ -11,8 +11,8 @@ public record RotateRefreshTokenRequest(
         String refreshToken,
 
         @NotBlank
-        Session session,
+        String sessionId,
 
         @NotNull
-        User user
+        Long userId
 ) {}

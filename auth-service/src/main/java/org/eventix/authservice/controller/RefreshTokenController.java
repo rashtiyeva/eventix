@@ -41,26 +41,25 @@ public class RefreshTokenController {
 
         RefreshTokenResponse response = refreshTokenService.refresh(
                 request.refreshToken(),
-                request.session(),
-                request.user()
+                request.sessionId(),
+                request.userId()
         );
 
         return ResponseEntity.ok(response);
     }
-
     @PostMapping("/validate")
     public ResponseEntity<RefreshTokenValidationResponse> validateToken(
             @Valid @RequestBody ValidateRefreshTokenRequest request
     ) {
 
-        boolean valid = refreshTokenService.validate(
+        refreshTokenService.validate(
                 request.refreshToken(),
-                request.session(),
-                request.user()
+                request.sessionId(),
+                request.userId()
         );
 
         return ResponseEntity.ok(
-                new RefreshTokenValidationResponse(valid)
+                new RefreshTokenValidationResponse(true)
         );
     }
 

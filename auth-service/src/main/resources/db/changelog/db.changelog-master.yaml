@@ -24,6 +24,9 @@ databaseChangeLog:
   - include:
       file: db/changelog/08-create-refresh-tokens-indexes.yaml
 
+  - include:
+      file: db/changelog/09-refresh-tokens-constraints.yaml
+
 
 
 

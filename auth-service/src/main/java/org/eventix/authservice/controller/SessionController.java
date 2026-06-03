@@ -40,9 +40,8 @@ public class SessionController {
     public ResponseEntity<SessionResponse> getActiveSession(
             @PathVariable String sessionId
     ) {
-        Session session = sessionService.getActiveSession(
-                Session.builder().id(sessionId).build()
-        );
+
+        Session session = sessionService.getActiveSession(sessionId);
 
         return ResponseEntity.ok(
                 sessionMapper.toResponse(session)

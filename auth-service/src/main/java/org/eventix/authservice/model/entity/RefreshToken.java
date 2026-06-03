@@ -20,7 +20,7 @@ public class RefreshToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Column(name ="token_hash", nullable = false, unique = true, length = 44)
+    @Column(name ="token_hash", nullable = false, length = 44)
     String tokenHash;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

@@ -11,8 +11,8 @@ public record ValidateRefreshTokenRequest(
         String refreshToken,
 
         @NotBlank
-        Session session,
+        String sessionId,
 
         @NotNull
-        User user
+        Long userId
 ) {}

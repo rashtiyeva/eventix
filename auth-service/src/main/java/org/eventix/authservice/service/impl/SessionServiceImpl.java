@@ -36,13 +36,13 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
-    public Session getActiveSession(Session session) {
+    public Session getActiveSession(String sessionId) {
 
         return sessionRepository.findByIdAndStatus(
-                session.getId(),
+                sessionId,
                 SessionStatus.ACTIVE
         ).orElseThrow(() ->
-                new SessionNotActiveException(session.getId())
+                new SessionNotActiveException(sessionId)
         );
     }
 
