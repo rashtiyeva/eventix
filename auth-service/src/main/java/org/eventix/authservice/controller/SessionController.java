@@ -26,7 +26,7 @@ public class SessionController {
             @RequestBody CreateSessionRequest request
     ) {
         Session session = sessionService.create(
-                principal.getUser(),
+                principal.user(),
                 request.ip(),
                 request.userAgent()
         );

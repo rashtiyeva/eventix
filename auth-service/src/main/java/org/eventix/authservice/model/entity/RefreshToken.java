@@ -3,17 +3,11 @@ package org.eventix.authservice.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.eventix.authservice.model.enums.RefreshTokenStatus;
+
 import java.time.Instant;
 
 @Entity
-//@Table(
-//        name = "refresh_tokens",
-//        indexes = {
-//                @Index(name = "idx_refresh_token_hash", columnList = "token_hash"),
-//                @Index(name = "idx_refresh_user", columnList = "user_id"),
-//                @Index(name = "idx_refresh_session", columnList = "session_id")
-//        }
-//)
 @Table(name = "refresh_tokens")
 @Data
 @NoArgsConstructor
@@ -42,15 +36,16 @@ public class RefreshToken {
     @Column(nullable = false)
     Instant updatedAt;
 
-    @Column
-    Instant usedAt;
-
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    boolean revoked = false;
+    RefreshTokenStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     User user;
+
+    @Version
+    private Long version;
 
     @PrePersist
     public void prePersist() {

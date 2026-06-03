@@ -55,10 +55,14 @@ public class AuthServiceImpl implements AuthService {
         return buildAuthResponse(savedUser, session.getId());
     }
 
+    @Transactional
     @Override
     public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
 
-        User user = userRepository.findByEmail(request.email())
+        User user = userRepository.findByEmailAndStatus(
+                        request.email(),
+                        UserStatus.ACTIVE
+                )
                 .orElseThrow(InvalidCredentialsException::new);
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
@@ -112,7 +116,7 @@ public class AuthServiceImpl implements AuthService {
 
     private void validateEmail(String email) {
 
-        if (userRepository.existsByEmail(email)) {
+        if (userRepository.existsByEmailAndStatus(email, UserStatus.ACTIVE)) {
             throw new EmailAlreadyExistsException();
         }
     }

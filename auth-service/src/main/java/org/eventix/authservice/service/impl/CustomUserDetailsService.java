@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eventix.authservice.exception.UserNotFoundException;
 import org.eventix.authservice.model.entity.User;
+import org.eventix.authservice.model.enums.UserStatus;
 import org.eventix.authservice.repository.UserRepository;
 import org.eventix.authservice.security.UserPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,10 +21,12 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) {
 
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailAndStatus(
+                        email,
+                        UserStatus.ACTIVE
+                )
                 .orElseThrow(() -> new UserNotFoundException(email));
 
         return new UserPrincipal(user);
-
     }
 }

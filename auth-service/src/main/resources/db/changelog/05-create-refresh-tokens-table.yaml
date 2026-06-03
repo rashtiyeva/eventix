@@ -47,13 +47,8 @@ databaseChangeLog:
                     nullable: false
 
               - column:
-                  name: used_at
-                  type: TIMESTAMP
-
-              - column:
-                  name: revoked
-                  type: BOOLEAN
-                  defaultValueBoolean: false
+                  name: status
+                  type: VARCHAR(20)
                   constraints:
                     nullable: false
 

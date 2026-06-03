@@ -2,21 +2,14 @@ package org.eventix.authservice.security;
 import org.eventix.authservice.model.entity.User;
 import java.util.Collection;
 import java.util.Collections;
-import lombok.Getter;
+
 import org.eventix.authservice.model.enums.UserStatus;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 
-@Getter
-public class UserPrincipal implements UserDetails {
-
-    private final User user;
-
-    public UserPrincipal(User user) {
-        this.user = user;
-    }
+public record UserPrincipal(User user) implements UserDetails {
 
     public Long getUserId() {
         return user.getId();
@@ -37,16 +30,6 @@ public class UserPrincipal implements UserDetails {
     @Override
     public String getUsername() {
         return user.getEmail();
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
     }
 
     @Override

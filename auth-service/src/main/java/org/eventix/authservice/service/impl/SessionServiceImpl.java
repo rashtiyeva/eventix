@@ -38,30 +38,36 @@ public class SessionServiceImpl implements SessionService {
     @Override
     public Session getActiveSession(Session session) {
 
-        Session fresh = sessionRepository.findById(session.getId())
-                .orElseThrow(() -> new SessionNotFoundException(session.getId()));
-
-        if (fresh.getStatus() != SessionStatus.ACTIVE) {
-            throw new SessionNotActiveException(session.getId());
-        }
-
-        return fresh;
+        return sessionRepository.findByIdAndStatus(
+                session.getId(),
+                SessionStatus.ACTIVE
+        ).orElseThrow(() ->
+                new SessionNotActiveException(session.getId())
+        );
     }
 
     @Override
     public void revoke(Session session) {
 
-        Session fresh = sessionRepository.findById(session.getId())
-                .orElseThrow(() -> new SessionNotFoundException(session.getId()));
+        int updated = sessionRepository.updateStatusById(
+                session.getId(),
+                SessionStatus.REVOKED,
+                SessionStatus.ACTIVE
+        );
 
-        fresh.setStatus(SessionStatus.REVOKED);
-
-        sessionRepository.save(fresh);
+        if (updated == 0) {
+            throw new SessionNotFoundException(session.getId());
+        }
     }
 
     @Override
     @Transactional
     public void revokeAll(Long userId) {
-        sessionRepository.updateStatusByUserId(userId, SessionStatus.REVOKED);
+
+        sessionRepository.updateStatusByUserId(
+                userId,
+                SessionStatus.REVOKED,
+                SessionStatus.ACTIVE
+        );
     }
 }
