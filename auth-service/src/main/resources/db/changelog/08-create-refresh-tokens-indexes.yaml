@@ -1,7 +1,7 @@
 databaseChangeLog:
 
   - changeSet:
-      id: 08-refresh-tokens-indexes
+      id: 08-create-refresh-tokens-indexes
       author: auth-service
 
       changes:

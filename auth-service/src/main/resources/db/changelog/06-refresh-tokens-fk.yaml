@@ -1,7 +1,7 @@
 databaseChangeLog:
 
   - changeSet:
-      id: 05-refresh-tokens-fk
+      id: 06-refresh-tokens-fk
       author: auth-service
 
       changes:

@@ -26,7 +26,13 @@ public class AuthController {
             @RequestBody @Valid RegisterRequest request,
             HttpServletRequest httpRequest
     ) {
-        return ResponseEntity.ok(authService.register(request, httpRequest));
+        return ResponseEntity.ok(
+                authService.register(
+                        request,
+                        httpRequest.getRemoteAddr(),
+                        httpRequest.getHeader("User-Agent")
+                )
+        );
     }
 
     @PostMapping("/login")
@@ -34,8 +40,15 @@ public class AuthController {
             @RequestBody @Valid LoginRequest request,
             HttpServletRequest httpRequest
     ) {
-        return ResponseEntity.ok(authService.login(request, httpRequest));
+        return ResponseEntity.ok(
+                authService.login(
+                        request,
+                        httpRequest.getRemoteAddr(),
+                        httpRequest.getHeader("User-Agent")
+                )
+        );
     }
+
     @PostMapping("/logout/{sessionId}")
     public ResponseEntity<Void> logout(
             @PathVariable String sessionId,

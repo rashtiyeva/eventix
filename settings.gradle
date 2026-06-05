@@ -1,0 +1,7 @@
+rootProject.name = 'eventix'
+
+include 'auth-service'
+include 'event-service'
+include 'notification-service'
+include 'ticket-service'
+include 'infra'

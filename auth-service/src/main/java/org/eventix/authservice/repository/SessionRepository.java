@@ -6,6 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 public interface SessionRepository extends JpaRepository<Session, String> {
@@ -37,4 +40,18 @@ public interface SessionRepository extends JpaRepository<Session, String> {
             @Param("status") SessionStatus status,
             @Param("currentStatus") SessionStatus currentStatus
     );
+
+    Optional<Session> findActiveByUserIdAndDeviceKey(Long userId, String deviceKey);
+
+    @Modifying
+    @Query("""
+           UPDATE Session s
+           SET s.lastUsedAt = :now
+           WHERE s.id = :sessionId
+           """)
+    void touchSession(String sessionId, Instant now);
+
+    List<Session> findAllByUserIdAndStatus(Long userId, SessionStatus status);
+
+    Optional<Session> findByIdAndUserId(String sessionId, Long userId);
 }

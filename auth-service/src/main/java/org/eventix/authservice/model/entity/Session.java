@@ -40,6 +40,9 @@ public class Session {
     @Column(length = 512)
     String userAgent;
 
+    @Column(nullable = false, length = 128)
+    String deviceKey;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = Instant.now();

@@ -29,4 +29,14 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         return new UserPrincipal(user);
     }
+
+    public UserDetails loadUserById(Long id) {
+
+        User user = userRepository.findByIdAndStatus(
+                id,
+                UserStatus.ACTIVE
+        ).orElseThrow(() -> new UserNotFoundException(id));
+
+        return new UserPrincipal(user);
+    }
 }

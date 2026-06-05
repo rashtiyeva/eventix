@@ -8,11 +8,5 @@ import org.eventix.authservice.model.entity.User;
 public record RotateRefreshTokenRequest(
 
         @NotBlank
-        String refreshToken,
-
-        @NotBlank
-        String sessionId,
-
-        @NotNull
-        Long userId
+        String refreshToken
 ) {}

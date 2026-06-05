@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.eventix.authservice.exception.EmailAlreadyExistsException;
 import org.eventix.authservice.exception.InvalidCredentialsException;
 import org.eventix.authservice.exception.SessionNotFoundException;
-import org.eventix.authservice.exception.UserNotFoundException;
 import org.eventix.authservice.mapper.AuthMapper;
 import org.eventix.authservice.model.dto.request.LoginRequest;
 import org.eventix.authservice.model.dto.request.RegisterRequest;
@@ -43,21 +42,21 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional
     @Override
-    public AuthResponse register(RegisterRequest request, HttpServletRequest httpRequest){
+    public AuthResponse register(RegisterRequest request, String ip, String userAgent) {
 
         validateEmail(request.email());
 
         User user = createUser(request);
         User savedUser = userRepository.save(user);
 
-        Session session = createSession(savedUser, httpRequest);
+        Session session = createSession(savedUser, ip, userAgent);
 
-        return buildAuthResponse(savedUser, session.getId());
+        return issueAuthResponse(savedUser, session);
     }
 
     @Transactional
     @Override
-    public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
+    public AuthResponse login(LoginRequest request, String ip, String userAgent) {
 
         User user = userRepository.findByEmailAndStatus(
                         request.email(),
@@ -69,9 +68,9 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidCredentialsException();
         }
 
-        Session session = createSession(user, httpRequest);
+        Session session = createSession(user, ip, userAgent);
 
-        return buildAuthResponse(user, session.getId());
+        return issueAuthResponse(user, session);
     }
 
     @Transactional
@@ -121,36 +120,25 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private AuthResponse buildAuthResponse(User user, String sessionId) {
-
-        Session session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new SessionNotFoundException(sessionId));
+    private AuthResponse issueAuthResponse(User user, Session session) {
 
         String accessToken = accessTokenService.generateAccessToken(
                 user.getId().toString(),
                 Set.of(user.getRole())
         );
 
-        RefreshTokenResponse refreshTokenResponse =
+        RefreshTokenResponse refreshToken =
                 refreshTokenService.createToken(user, session);
 
         return new AuthResponse(
                 accessToken,
-                refreshTokenResponse.refreshToken(),
+                refreshToken.refreshToken(),
                 authMapper.mapToUserResponse(user)
         );
     }
 
-    private Session createSession(User user, HttpServletRequest request) {
-
-        String ip = getClientIp(request);
-        String userAgent = Optional.ofNullable(request.getHeader("User-Agent"))
-                .orElse("unknown");
-
+    private Session createSession(User user, String ip, String userAgent) {
         return sessionService.create(user, ip, userAgent);
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        return request.getRemoteAddr();
-    }
 }

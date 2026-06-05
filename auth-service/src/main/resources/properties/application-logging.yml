@@ -3,3 +3,5 @@ logging:
     root: INFO
     org.eventix: DEBUG
     org.hibernate.SQL: debug
+    liquibase: INFO
+    org.springframework.security: DEBUG

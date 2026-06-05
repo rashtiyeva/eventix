@@ -4,6 +4,8 @@ import org.eventix.authservice.model.entity.Session;
 import org.eventix.authservice.model.entity.User;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public interface SessionService {
 
@@ -14,4 +16,8 @@ public interface SessionService {
     void revoke(Session session);
 
     void revokeAll(Long userId);
+
+    List<Session> getUserSessions(Long userId);
+
+    Session getUserSession(Long userId, String sessionId);
 }

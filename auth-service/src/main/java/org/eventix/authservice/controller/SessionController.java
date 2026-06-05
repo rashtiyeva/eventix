@@ -12,59 +12,38 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/sessions")
+@RequestMapping("/v1/sessions")
 @RequiredArgsConstructor
 public class SessionController {
 
     private final SessionService sessionService;
     private final SessionMapper sessionMapper;
 
-    @PostMapping
-    public ResponseEntity<SessionResponse> createSession(
-            @AuthenticationPrincipal UserPrincipal principal,
-            @RequestBody CreateSessionRequest request
-    ) {
-        Session session = sessionService.create(
-                principal.user(),
-                request.ip(),
-                request.userAgent()
-        );
-
-        return ResponseEntity.ok(
-                sessionMapper.toResponse(session)
-        );
-    }
-
     @GetMapping("/{sessionId}")
-    public ResponseEntity<SessionResponse> getActiveSession(
-            @PathVariable String sessionId
-    ) {
-
-        Session session = sessionService.getActiveSession(sessionId);
-
-        return ResponseEntity.ok(
-                sessionMapper.toResponse(session)
-        );
-    }
-
-    @PostMapping("/revoke")
-    public ResponseEntity<Void> revoke(
-            @RequestBody RevokeSessionRequest request
-    ) {
-        sessionService.revoke(
-                Session.builder()
-                        .id(request.sessionId())
-                        .build()
-        );
-
-        return ResponseEntity.noContent().build();
-    }
-    @PostMapping("/revoke/all")
-    public ResponseEntity<Void> revokeAll(
+    public ResponseEntity<SessionResponse> getSession(
+            @PathVariable String sessionId,
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        sessionService.revokeAll(principal.getUserId());
-        return ResponseEntity.noContent().build();
+        Session session = sessionService.getUserSession(
+                principal.getUserId(),
+                sessionId
+        );
+
+        return ResponseEntity.ok(sessionMapper.toResponse(session));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<SessionResponse>> getUserSessions(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(
+                sessionService.getUserSessions(principal.getUserId())
+                        .stream()
+                        .map(sessionMapper::toResponse)
+                        .toList()
+        );
     }
 }

@@ -5,8 +5,7 @@ import org.eventix.authservice.model.entity.Session;
 
 public class InvalidRefreshTokenException extends RefreshTokenException {
 
-    public InvalidRefreshTokenException(String token, String sessionId) {
-        super("Invalid refresh token. token=" + token +
-                ", sessionId=" + sessionId);
+    public InvalidRefreshTokenException(String token) {
+        super("Invalid refresh token. token=" + token);
     }
 }

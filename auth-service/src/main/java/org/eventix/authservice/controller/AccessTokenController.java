@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/v1/jwt")
+@RequestMapping("/v1/access-token")
 @RequiredArgsConstructor
 @Validated
 public class AccessTokenController {

@@ -11,11 +11,7 @@ import java.util.Optional;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
 
-    Optional<RefreshToken> findByTokenHashAndSession_IdAndUser_Id(
-            String tokenHash,
-            String sessionId,
-            Long userId
-    );
+    Optional<RefreshToken> findByTokenHash(String tokenHash);
 
     @Modifying
     @Query("""
@@ -47,5 +43,20 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
             @Param("status") RefreshTokenStatus status,
             @Param("currentStatus") RefreshTokenStatus currentStatus,
             @Param("now") Instant now
+    );
+
+    @Modifying
+    @Query("""
+           UPDATE RefreshToken r
+           SET r.status = :newStatus,
+           r.updatedAt = :now
+           WHERE r.id = :id
+           AND r.status = :expectedStatus
+           """)
+    int markAsUsedIfActive(
+            Long id,
+            RefreshTokenStatus newStatus,
+            RefreshTokenStatus expectedStatus,
+            Instant now
     );
 }

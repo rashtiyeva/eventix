@@ -4,5 +4,5 @@ import jakarta.validation.constraints.NotNull;
 import org.eventix.authservice.model.entity.User;
 
 public record RevokeUserRefreshTokenRequest(
-        @NotNull User user
+        @NotNull Long userId
 ) {}

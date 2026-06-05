@@ -46,3 +46,9 @@ databaseChangeLog:
               - column:
                   name: user_agent
                   type: VARCHAR(512)
+
+              - column:
+                  name: device_key
+                  type: varchar(128)
+                  constraints:
+                    nullable: false

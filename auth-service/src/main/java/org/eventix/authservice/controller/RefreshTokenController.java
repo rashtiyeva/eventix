@@ -5,13 +5,12 @@ import lombok.RequiredArgsConstructor;
 import org.eventix.authservice.model.dto.request.*;
 import org.eventix.authservice.model.dto.response.RefreshTokenResponse;
 import org.eventix.authservice.model.dto.response.RefreshTokenValidationResponse;
+import org.eventix.authservice.security.UserPrincipal;
 import org.eventix.authservice.service.RefreshTokenService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/v1/refresh-token")
@@ -21,66 +20,31 @@ public class RefreshTokenController {
 
     private final RefreshTokenService refreshTokenService;
 
-    @PostMapping("/generate")
-    public ResponseEntity<RefreshTokenResponse> createToken(
-            @Valid @RequestBody CreateRefreshTokenRequest request
-    ) {
-
-        RefreshTokenResponse response = refreshTokenService.createToken(
-                request.user(),
-                request.session()
-        );
-
-        return ResponseEntity.ok(response);
-    }
-
     @PostMapping("/refresh")
     public ResponseEntity<RefreshTokenResponse> refreshToken(
             @Valid @RequestBody RotateRefreshTokenRequest request
     ) {
-
-        RefreshTokenResponse response = refreshTokenService.refresh(
-                request.refreshToken(),
-                request.sessionId(),
-                request.userId()
-        );
-
-        return ResponseEntity.ok(response);
-    }
-    @PostMapping("/validate")
-    public ResponseEntity<RefreshTokenValidationResponse> validateToken(
-            @Valid @RequestBody ValidateRefreshTokenRequest request
-    ) {
-
-        refreshTokenService.validate(
-                request.refreshToken(),
-                request.sessionId(),
-                request.userId()
-        );
-
         return ResponseEntity.ok(
-                new RefreshTokenValidationResponse(true)
+                refreshTokenService.refresh(request.refreshToken())
         );
     }
 
     @PostMapping("/revoke/all")
     public ResponseEntity<Void> revokeAll(
-            @Valid @RequestBody RevokeUserRefreshTokenRequest request
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
-
-        refreshTokenService.revokeAll(request.user().getId());
-
+        refreshTokenService.revokeAll(principal.getUserId());
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/revoke/session")
+    @PostMapping("/revoke/session/{sessionId}")
     public ResponseEntity<Void> revokeSession(
-            @Valid @RequestBody RevokeSessionRequest request
+            @PathVariable String sessionId,
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
-
         refreshTokenService.revokeSession(
-                request.userId(),
-                request.sessionId()
+                principal.getUserId(),
+                sessionId
         );
 
         return ResponseEntity.noContent().build();

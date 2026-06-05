@@ -1,0 +1,16 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 09-add-refresh-token-version-column
+      author: auth-service
+      changes:
+
+        - addColumn:
+            tableName: refresh_tokens
+            columns:
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValueNumeric: "0"
+                  constraints:
+                    nullable: false

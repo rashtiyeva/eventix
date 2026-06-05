@@ -10,6 +10,7 @@ import org.eventix.authservice.model.entity.User;
 import org.eventix.authservice.model.enums.RefreshTokenStatus;
 import org.eventix.authservice.model.enums.UserStatus;
 import org.eventix.authservice.repository.RefreshTokenRepository;
+import org.eventix.authservice.repository.SessionRepository;
 import org.eventix.authservice.repository.UserRepository;
 import org.eventix.authservice.security.JwtProperties;
 import org.eventix.authservice.service.RefreshTokenService;
@@ -27,7 +28,6 @@ import java.util.Base64;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 @Slf4j
 public class RefreshTokenServiceImpl implements RefreshTokenService {
 
@@ -36,7 +36,10 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     private final SecureRandom secureRandom;
     private final SessionService sessionService;
     private final UserRepository userRepository;
+    private final SessionRepository sessionRepository;
+
     @Override
+    @Transactional
     public RefreshTokenResponse createToken(User user, Session session) {
 
         Instant now = Instant.now();
@@ -59,54 +62,51 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         return new RefreshTokenResponse(rawToken);
     }
 
+
     @Retryable(
             retryFor = OptimisticLockingFailureException.class,
             maxAttempts = 3
     )
-
-
+    @Transactional
     @Override
-    public RefreshTokenResponse refresh(
-            String rawToken,
-            String sessionId,
-            Long userId
-    ) {
+    public RefreshTokenResponse refresh(String rawToken) {
 
-        String hash = hashToken(rawToken);
         Instant now = Instant.now();
 
-        Session freshSession = sessionService.getActiveSession(sessionId);
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
+        String hash = hashToken(rawToken);
 
         RefreshToken stored = refreshTokenRepository
-                .findByTokenHashAndSession_IdAndUser_Id(
-                        hash,
-                        freshSession.getId(),
-                        user.getId()
-                )
-                .orElseThrow(() ->
-                        new InvalidRefreshTokenException(
-                                rawToken,
-                                sessionId
-                        )
-                );
+                .findByTokenHash(hash)
+                .orElseThrow(() -> new InvalidRefreshTokenException(rawToken));
 
-        validateToken(stored, freshSession);
+        validateTokenState(stored);
 
-        stored.setStatus(RefreshTokenStatus.USED);
-        stored.setUpdatedAt(now);
+        int updated = refreshTokenRepository.markAsUsedIfActive(
+                stored.getId(),
+                RefreshTokenStatus.USED,
+                RefreshTokenStatus.ACTIVE,
+                now
+        );
 
-        refreshTokenRepository.save(stored);
+        if (updated == 0) {
+            log.warn("Concurrent refresh detected or token already used. userId={}, sessionId={}",
+                    stored.getUser().getId(),
+                    stored.getSession().getId()
+            );
+            throw new RefreshTokenAlreadyUsedException();
+        }
+
+        sessionRepository.touchSession(
+                stored.getSession().getId(),
+                now
+        );
 
         String newRawToken = generateToken();
-        String newHash = hashToken(newRawToken);
 
         RefreshToken newToken = RefreshToken.builder()
-                .tokenHash(newHash)
+                .tokenHash(hashToken(newRawToken))
                 .user(stored.getUser())
-                .session(freshSession)
+                .session(stored.getSession())
                 .status(RefreshTokenStatus.ACTIVE)
                 .expiresAt(now.plus(jwtProperties.refreshExpiration()))
                 .createdAt(now)
@@ -119,6 +119,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     }
 
     @Override
+    @Transactional
     public void revokeAll(Long userId) {
 
         Instant now = Instant.now();
@@ -138,6 +139,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     }
 
     @Override
+    @Transactional
     public void revokeSession(Long userId, String sessionId) {
 
         User user = userRepository.findByIdAndStatus(userId, UserStatus.ACTIVE)
@@ -161,50 +163,51 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         );
     }
 
-    @Transactional(readOnly = true)
-    @Override
-    public void validate(String rawToken, String sessionId, Long userId) {
+    private RefreshToken resolveAndValidate(String rawToken) {
 
         String hash = hashToken(rawToken);
 
-        sessionService.getActiveSession(sessionId); // only for validation side-effect
-
         RefreshToken token = refreshTokenRepository
-                .findByTokenHashAndSession_IdAndUser_Id(
-                        hash,
-                        sessionId,
-                        userId
-                )
+                .findByTokenHash(hash)
                 .orElseThrow(() ->
-                        new InvalidRefreshTokenException(rawToken, sessionId)
+                        new InvalidRefreshTokenException(rawToken)
                 );
 
-        validateToken(token, null);
+        validateTokenState(token);
+
+        return token;
     }
 
-    private void validateToken(
-            RefreshToken token,
-            Session session
-    ) {
+    private void validateTokenState(RefreshToken token) {
 
-        if (token.getExpiresAt().isBefore(Instant.now())) {
-            throw new RefreshTokenExpiredException(session);
+        Instant now = Instant.now();
+
+        if (token.getExpiresAt().isBefore(now)) {
+            throw new RefreshTokenExpiredException();
         }
 
         switch (token.getStatus()) {
 
-            case USED ->
-                    throw new RefreshTokenAlreadyUsedException(session);
+            case USED -> {
 
-            case REVOKED ->
-                    throw new RefreshTokenRevokedException(session);
+                Long userId = token.getUser().getId();
+                String sessionId = token.getSession().getId();
 
-            case EXPIRED ->
-                    throw new RefreshTokenExpiredException(session);
+                log.warn("Refresh token reuse detected! possible theft. userId={}, sessionId={}",
+                        token.getUser().getId(),
+                        token.getSession().getId()
+                );
 
+                sessionService.revoke(token.getSession());
+
+                throw new RefreshTokenReuseDetectedException(sessionId, userId);
+            }
+            case REVOKED -> throw new RefreshTokenRevokedException();
+            case EXPIRED -> throw new RefreshTokenExpiredException();
             case ACTIVE -> { }
         }
     }
+
 
     private String generateToken() {
 
@@ -215,6 +218,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                 .withoutPadding()
                 .encodeToString(bytes);
     }
+
 
     private String hashToken(String token) {
 
@@ -230,7 +234,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                     .encodeToString(hash);
 
         } catch (NoSuchAlgorithmException e) {
-            throw new RefreshTokenHashingException(e);
+            throw new RefreshTokenHashingException();
         }
     }
 }
