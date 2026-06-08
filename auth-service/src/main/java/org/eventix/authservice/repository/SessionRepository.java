@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -54,4 +53,24 @@ public interface SessionRepository extends JpaRepository<Session, String> {
     List<Session> findAllByUserIdAndStatus(Long userId, SessionStatus status);
 
     Optional<Session> findByIdAndUserId(String sessionId, Long userId);
+
+    @Modifying
+    @Query("""
+    update Session s
+    set s.status = org.eventix.authservice.model.enums.SessionStatus.EXPIRED
+    where s.status = org.eventix.authservice.model.enums.SessionStatus.ACTIVE
+      and s.lastUsedAt < :cutoff
+""")
+    int expireInactiveSessions(@Param("cutoff") Instant cutoff);
+
+    @Modifying
+    @Query("""
+    delete from Session s
+    where s.status in (
+        org.eventix.authservice.model.enums.SessionStatus.EXPIRED,
+        org.eventix.authservice.model.enums.SessionStatus.REVOKED
+    )
+    and s.lastUsedAt < :cutoff
+""")
+    int deleteOldSessions(@Param("cutoff") Instant cutoff);
 }

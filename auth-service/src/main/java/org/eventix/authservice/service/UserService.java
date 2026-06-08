@@ -2,10 +2,10 @@ package org.eventix.authservice.service;
 
 import org.eventix.authservice.model.dto.request.UserUpdateRequest;
 import org.eventix.authservice.model.dto.response.UserResponse;
-import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
-@Service
 public interface UserService {
 
     UserResponse getUser(Long id);
@@ -15,4 +15,6 @@ public interface UserService {
     UserResponse updateUser(Long id, UserUpdateRequest request);
 
     void deleteUser(Long id);
+
+    int purgeDeletedUsers();
 }

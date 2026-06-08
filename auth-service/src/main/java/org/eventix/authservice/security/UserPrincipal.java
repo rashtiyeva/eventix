@@ -1,4 +1,5 @@
 package org.eventix.authservice.security;
+
 import org.eventix.authservice.model.entity.User;
 import java.util.Collection;
 import java.util.Collections;
@@ -7,7 +8,6 @@ import org.eventix.authservice.model.enums.UserStatus;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
 
 public record UserPrincipal(User user) implements UserDetails {
 

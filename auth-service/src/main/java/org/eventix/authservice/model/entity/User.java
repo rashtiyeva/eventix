@@ -44,11 +44,15 @@ public class User {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    @Column
+    Instant deletedAt;
+
     @PrePersist
     public void prePersist() {
         Instant now = Instant.now();
         this.createdAt = now;
         this.updatedAt = now;
+        this.deletedAt = now;
     }
 
     @PreUpdate

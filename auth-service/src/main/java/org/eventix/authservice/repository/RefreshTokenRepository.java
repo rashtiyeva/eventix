@@ -59,4 +59,26 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
             RefreshTokenStatus expectedStatus,
             Instant now
     );
+
+    @Modifying
+    @Query("""
+    update RefreshToken rt
+    set rt.status = org.eventix.authservice.model.enums.RefreshTokenStatus.EXPIRED,
+        rt.updatedAt = :now
+    where rt.status = org.eventix.authservice.model.enums.RefreshTokenStatus.ACTIVE
+      and rt.expiresAt < :now
+    """)
+    int markExpiredTokens(@Param("now") Instant now);
+
+    @Modifying
+    @Query("""
+    delete from RefreshToken rt
+    where rt.status in (
+        org.eventix.authservice.model.enums.RefreshTokenStatus.EXPIRED,
+        org.eventix.authservice.model.enums.RefreshTokenStatus.REVOKED,
+        org.eventix.authservice.model.enums.RefreshTokenStatus.USED
+    )
+    and rt.updatedAt < :cutoff
+    """)
+    int deleteOldTokens(@Param("cutoff") Instant cutoff);
 }

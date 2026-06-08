@@ -8,6 +8,7 @@ import org.eventix.authservice.model.entity.RefreshToken;
 import org.eventix.authservice.model.entity.Session;
 import org.eventix.authservice.model.entity.User;
 import org.eventix.authservice.model.enums.RefreshTokenStatus;
+import org.eventix.authservice.model.enums.SessionStatus;
 import org.eventix.authservice.model.enums.UserStatus;
 import org.eventix.authservice.repository.RefreshTokenRepository;
 import org.eventix.authservice.repository.SessionRepository;
@@ -24,6 +25,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 
 @Service
@@ -38,14 +40,30 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     private final UserRepository userRepository;
     private final SessionRepository sessionRepository;
 
-    @Override
     @Transactional
-    public RefreshTokenResponse createToken(User user, Session session) {
+    @Override
+    public RefreshTokenResponse createToken(Long userId, String sessionId) {
 
         Instant now = Instant.now();
 
+        log.debug("Creating refresh token userId={}, sessionId={}", userId, sessionId);
+
         String rawToken = generateToken();
         String hash = hashToken(rawToken);
+
+        Session session = sessionRepository.findByIdAndStatus(
+                sessionId,
+                SessionStatus.ACTIVE
+        ).orElseThrow(() -> {
+            log.warn("Refresh token creation failed - session not active sessionId={}", sessionId);
+            return new SessionNotActiveException(sessionId);
+        });
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.warn("Refresh token creation failed - user not found userId={}", userId);
+                    return new UserNotFoundException(userId);
+                });
 
         RefreshToken token = RefreshToken.builder()
                 .tokenHash(hash)
@@ -59,9 +77,11 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         refreshTokenRepository.save(token);
 
+        log.info("Refresh token created userId={}, sessionId={}, expiresAt={}",
+                userId, sessionId, token.getExpiresAt());
+
         return new RefreshTokenResponse(rawToken);
     }
-
 
     @Retryable(
             retryFor = OptimisticLockingFailureException.class,
@@ -73,11 +93,16 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         Instant now = Instant.now();
 
+        log.debug("Refresh token request received");
+
         String hash = hashToken(rawToken);
 
         RefreshToken stored = refreshTokenRepository
                 .findByTokenHash(hash)
-                .orElseThrow(() -> new InvalidRefreshTokenException(rawToken));
+                .orElseThrow(() -> {
+                    log.warn("Refresh token not found or invalid");
+                    return new InvalidRefreshTokenException(rawToken);
+                });
 
         validateTokenState(stored);
 
@@ -89,7 +114,8 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         );
 
         if (updated == 0) {
-            log.warn("Concurrent refresh detected or token already used. userId={}, sessionId={}",
+            log.warn(
+                    "Refresh token race condition or reuse detected userId={}, sessionId={}",
                     stored.getUser().getId(),
                     stored.getSession().getId()
             );
@@ -115,6 +141,11 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         refreshTokenRepository.save(newToken);
 
+        log.info("Refresh token rotated successfully userId={}, sessionId={}",
+                stored.getUser().getId(),
+                stored.getSession().getId()
+        );
+
         return new RefreshTokenResponse(newRawToken);
     }
 
@@ -124,6 +155,8 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         Instant now = Instant.now();
 
+        log.debug("Revoking all refresh tokens userId={}", userId);
+
         int updated = refreshTokenRepository.updateStatusByUserId(
                 userId,
                 RefreshTokenStatus.REVOKED,
@@ -131,83 +164,120 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                 now
         );
 
-        log.info(
-                "Revoked {} tokens for userId={}",
-                updated,
-                userId
-        );
+        log.info("Revoked {} refresh tokens for userId={}", updated, userId);
     }
 
     @Override
     @Transactional
     public void revokeSession(Long userId, String sessionId) {
 
-        User user = userRepository.findByIdAndStatus(userId, UserStatus.ACTIVE)
-                .orElseThrow(() -> new UserNotFoundException(userId));
+        log.debug("Revoking refresh tokens for session userId={}, sessionId={}",
+                userId, sessionId);
 
-        Session freshSession = sessionService.getActiveSession(sessionId);
+        User user = userRepository.findByIdAndStatus(userId, UserStatus.ACTIVE)
+                .orElseThrow(() -> {
+                    log.warn("Revoke session failed - user not found userId={}", userId);
+                    return new UserNotFoundException(userId);
+                });
+
+        Session session = sessionService.getSession(sessionId);
 
         int updated = refreshTokenRepository.updateStatusByUserAndSessionId(
                 user.getId(),
-                freshSession.getId(),
+                session.getId(),
                 RefreshTokenStatus.REVOKED,
                 RefreshTokenStatus.ACTIVE,
                 Instant.now()
         );
 
-        log.info(
-                "Revoked {} tokens for userId={}, sessionId={}",
-                updated,
-                user.getId(),
-                freshSession.getId()
-        );
+        log.info("Revoked {} refresh tokens userId={}, sessionId={}",
+                updated, user.getId(), session.getId());
     }
 
-    private RefreshToken resolveAndValidate(String rawToken) {
+    @Transactional
+    @Override
+    public int markExpiredTokens() {
 
-        String hash = hashToken(rawToken);
+        Instant now = Instant.now();
 
-        RefreshToken token = refreshTokenRepository
-                .findByTokenHash(hash)
-                .orElseThrow(() ->
-                        new InvalidRefreshTokenException(rawToken)
-                );
+        int updated = refreshTokenRepository.markExpiredTokens(now);
 
-        validateTokenState(token);
+        log.info("Marked {} refresh tokens as expired", updated);
 
-        return token;
+        return updated;
+    }
+
+    @Transactional
+    @Override
+    public int deleteOldTokens() {
+
+        Instant cutoff = Instant.now().minus(90, ChronoUnit.DAYS);
+
+        int deleted = refreshTokenRepository.deleteOldTokens(cutoff);
+
+        log.info("Deleted {} old refresh tokens", deleted);
+
+        return deleted;
     }
 
     private void validateTokenState(RefreshToken token) {
 
-        Instant now = Instant.now();
-
-        if (token.getExpiresAt().isBefore(now)) {
-            throw new RefreshTokenExpiredException();
-        }
-
         switch (token.getStatus()) {
 
             case USED -> {
-
                 Long userId = token.getUser().getId();
                 String sessionId = token.getSession().getId();
 
-                log.warn("Refresh token reuse detected! possible theft. userId={}, sessionId={}",
+                log.error(
+                        "SECURITY ALERT: refresh token reuse detected (possible theft) userId={}, sessionId={}",
+                        userId,
+                        sessionId
+                );
+
+                sessionService.revoke(sessionId);
+
+                throw new RefreshTokenReuseDetectedException(sessionId, userId);
+            }
+
+            case REVOKED -> {
+                log.warn("Refresh token revoked userId={}, sessionId={}",
                         token.getUser().getId(),
                         token.getSession().getId()
                 );
 
-                sessionService.revoke(token.getSession());
-
-                throw new RefreshTokenReuseDetectedException(sessionId, userId);
+                throw new RefreshTokenRevokedException();
             }
-            case REVOKED -> throw new RefreshTokenRevokedException();
-            case EXPIRED -> throw new RefreshTokenExpiredException();
-            case ACTIVE -> { }
+
+            case EXPIRED -> {
+                log.warn("Refresh token expired userId={}, sessionId={}",
+                        token.getUser().getId(),
+                        token.getSession().getId()
+                );
+
+                throw new RefreshTokenExpiredException();
+            }
+
+            case ACTIVE -> {
+                Instant now = Instant.now();
+
+                if (token.getExpiresAt().isBefore(now)) {
+
+                    log.warn(
+                            "Refresh token expired but cleanup has not processed it yet userId={}, sessionId={}",
+                            token.getUser().getId(),
+                            token.getSession().getId()
+                    );
+
+                    throw new RefreshTokenExpiredException();
+                }
+
+                log.debug("Refresh token valid userId={}, sessionId={}",
+                        token.getUser().getId(),
+                        token.getSession().getId()
+                );
+            }
         }
     }
-
 
     private String generateToken() {
 
@@ -218,7 +288,6 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                 .withoutPadding()
                 .encodeToString(bytes);
     }
-
 
     private String hashToken(String token) {
 
@@ -234,6 +303,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                     .encodeToString(hash);
 
         } catch (NoSuchAlgorithmException e) {
+            log.error("Refresh token hashing failed - SHA-256 not available", e);
             throw new RefreshTokenHashingException();
         }
     }

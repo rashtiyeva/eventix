@@ -1,0 +1,16 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 10-add-deleted-at-to-users
+      author: auth-service
+      changes:
+
+        - addColumn:
+            tableName: users
+            columns:
+
+              - column:
+                  name: deleted_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true

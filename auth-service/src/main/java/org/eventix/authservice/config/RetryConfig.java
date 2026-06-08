@@ -1,4 +1,4 @@
-package org.eventix.authservice.security;
+package org.eventix.authservice.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.annotation.EnableRetry;
