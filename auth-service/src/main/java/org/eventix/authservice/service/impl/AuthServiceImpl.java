@@ -1,5 +1,6 @@
 package org.eventix.authservice.service.impl;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,13 +12,16 @@ import org.eventix.authservice.model.dto.request.LoginRequest;
 import org.eventix.authservice.model.dto.request.RegisterRequest;
 import org.eventix.authservice.model.dto.response.AuthResponse;
 import org.eventix.authservice.model.dto.response.RefreshTokenResponse;
+import org.eventix.authservice.model.entity.OAuth2Identity;
 import org.eventix.authservice.model.entity.Session;
 import org.eventix.authservice.model.entity.User;
 import org.eventix.authservice.model.enums.SessionStatus;
 import org.eventix.authservice.model.enums.UserRole;
 import org.eventix.authservice.model.enums.UserStatus;
+import org.eventix.authservice.repository.OAuth2IdentityRepository;
 import org.eventix.authservice.repository.SessionRepository;
 import org.eventix.authservice.repository.UserRepository;
+import org.eventix.authservice.security.OAuthAttributes;
 import org.eventix.authservice.service.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,6 +40,7 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenService refreshTokenService;
     private final SessionService sessionService;
     private final SessionRepository sessionRepository;
+    private final OAuth2IdentityRepository identityRepository;
 
     @Transactional
     @Override
@@ -90,6 +95,74 @@ public class AuthServiceImpl implements AuthService {
 
         return issueAuthResponse(user, session);
     }
+
+    @Transactional
+    @Override
+    public AuthResponse loginOAuth(OAuthAttributes attr, HttpServletRequest request) {
+
+        OAuth2Identity identity = identityRepository
+                .findByProviderAndProviderUserId(
+                        attr.provider(),
+                        attr.providerUserId()
+                )
+                .orElse(null);
+
+        User user;
+
+        if (identity != null) {
+            user = identity.getUser();
+        }
+
+        else {
+            user = createOAuthUser(attr.email());
+
+            linkIdentity(user, attr);
+        }
+
+        Session session = sessionService.create(
+                user,
+                request.getRemoteAddr(),
+                request.getHeader("User-Agent")
+        );
+
+        String accessToken = accessTokenService.generateAccessToken(
+                user.getId().toString(),
+                Set.of(user.getRole())
+        );
+
+        RefreshTokenResponse refreshToken =
+                refreshTokenService.createToken(user.getId(), session.getId());
+
+        return new AuthResponse(
+                accessToken,
+                refreshToken.refreshToken(),
+                authMapper.mapToUserResponse(user)
+        );
+    }
+
+    private User createOAuthUser(String email) {
+        return userRepository.save(
+                User.builder()
+                        .email(email)
+                        .password(null)
+                        .role(UserRole.BUYER)
+                        .status(UserStatus.ACTIVE)
+                        .build()
+        );
+    }
+
+    private void linkIdentity(User user, OAuthAttributes attr) {
+        OAuth2Identity identity = OAuth2Identity.builder()
+                .user(user)
+                .provider(attr.provider())
+                .providerUserId(attr.providerUserId())
+                .email(attr.email())
+                .emailVerified(attr.emailVerified())
+                .build();
+
+        identityRepository.save(identity);
+    }
+
 
     @Transactional
     @Override

@@ -30,6 +30,15 @@ databaseChangeLog:
   - include:
       file: db/changelog/10-add-deleted-at-to-users.yaml
 
+  - include:
+      file: db/changelog/11-create-oauth2-identities-table.yaml
+
+  - include:
+      file: db/changelog/12-oauth2-identities-fk.yaml
+
+  - include:
+      file: db/changelog/13-oauth2-identities-indexes.yaml
+
 
 
 

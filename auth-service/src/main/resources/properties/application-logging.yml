@@ -5,3 +5,5 @@ logging:
     org.hibernate.SQL: debug
     liquibase: INFO
     org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG
+

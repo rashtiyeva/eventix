@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 12-oauth2-identities-fk
+      author: auth-service
+
+      changes:
+        - addForeignKeyConstraint:
+            constraintName: fk_oauth2_identities_user
+            baseTableName: oauth2_identities
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE

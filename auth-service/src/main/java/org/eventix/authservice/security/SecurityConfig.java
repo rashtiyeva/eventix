@@ -12,6 +12,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
+import static org.springframework.security.config.Customizer.withDefaults;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -19,6 +21,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CorsConfigurationSource corsConfigurationSource;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -30,6 +33,10 @@ public class SecurityConfig {
 
                 .sessionManagement(sm ->
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                .headers(headers -> headers
+                        .contentTypeOptions(withDefaults())
                 )
 
                 .authorizeHttpRequests(auth -> auth
@@ -46,7 +53,13 @@ public class SecurityConfig {
 
                         .requestMatchers("/v1/auth/**").permitAll()
 
+                        .requestMatchers("/oauth2/**", "/login/**").permitAll()
+
                         .anyRequest().authenticated()
+                )
+
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(oAuth2SuccessHandler)
                 )
 
                 .addFilterBefore(jwtAuthenticationFilter,
