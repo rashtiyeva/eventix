@@ -39,6 +39,18 @@ databaseChangeLog:
   - include:
       file: db/changelog/13-oauth2-identities-indexes.yaml
 
+  - include:
+      file: db/changelog/14-create-user-recovery-codes-table.yaml
+
+  - include:
+      file: db/changelog/15-add-fk-user-recovery-codes.yaml
+
+  - include:
+      file: db/changelog/16-add-indexes-user-recovery-codes.yaml
+
+  - include:
+      file: db/changelog/17-add-index-user-recovery-used.yaml
+
 
 
 
