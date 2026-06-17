@@ -1,0 +1,12 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 17-add-index-user-recovery-used
+      author: auth-service
+
+      createIndex:
+        indexName: idx_recovery_used
+        tableName: user_recovery_codes
+        columns:
+          - column:
+              name: used

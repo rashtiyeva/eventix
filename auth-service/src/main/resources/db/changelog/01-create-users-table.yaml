@@ -52,8 +52,3 @@ databaseChangeLog:
                   constraints:
                     nullable: false
 
-              - column:
-                  name: deleted_at
-                  type: TIMESTAMP
-                  constraints:
-                    nullable: true

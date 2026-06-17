@@ -40,12 +40,10 @@ dependencies {
     implementation 'org.springframework.retry:spring-retry'
     implementation 'org.springframework.boot:spring-boot-starter-aop'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.jboss.aerogear:aerogear-otp-java:1.0.0'
+    testImplementation 'com.h2database:h2'
 }
-
-tasks.named('test') {
-    useJUnitPlatform()
-}
-
 
 test {
     useJUnitPlatform()

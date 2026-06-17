@@ -196,7 +196,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Transactional
     @Override
-    public int markExpiredTokens() {
+    public void markExpiredTokens() {
 
         Instant now = Instant.now();
 
@@ -204,12 +204,11 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         log.info("Marked {} refresh tokens as expired", updated);
 
-        return updated;
     }
 
     @Transactional
     @Override
-    public int deleteOldTokens() {
+    public void deleteOldTokens() {
 
         Instant cutoff = Instant.now().minus(90, ChronoUnit.DAYS);
 
@@ -217,7 +216,6 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         log.info("Deleted {} old refresh tokens", deleted);
 
-        return deleted;
     }
 
     private void validateTokenState(RefreshToken token) {

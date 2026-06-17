@@ -12,8 +12,8 @@ public interface RefreshTokenService {
 
     void revokeSession(Long userId, String sessionId);
 
-    int markExpiredTokens();
+    void markExpiredTokens();
 
 
-    int deleteOldTokens();
+    void deleteOldTokens();
 }

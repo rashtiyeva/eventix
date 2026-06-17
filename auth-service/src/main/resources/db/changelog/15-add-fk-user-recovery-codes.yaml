@@ -1,0 +1,13 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 15-add-fk-user-recovery-codes
+      author: auth-service
+
+      addForeignKeyConstraint:
+        baseTableName: user_recovery_codes
+        baseColumnNames: user_id
+        referencedTableName: users
+        referencedColumnNames: id
+        constraintName: fk_recovery_user
+        onDelete: CASCADE

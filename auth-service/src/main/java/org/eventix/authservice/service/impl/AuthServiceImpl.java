@@ -6,12 +6,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eventix.authservice.exception.EmailAlreadyExistsException;
 import org.eventix.authservice.exception.InvalidCredentialsException;
+import org.eventix.authservice.exception.InvalidTempTokenException;
 import org.eventix.authservice.exception.SessionNotFoundException;
 import org.eventix.authservice.mapper.AuthMapper;
+import org.eventix.authservice.model.dto.TempLoginState;
 import org.eventix.authservice.model.dto.request.LoginRequest;
 import org.eventix.authservice.model.dto.request.RegisterRequest;
 import org.eventix.authservice.model.dto.response.AuthResponse;
+import org.eventix.authservice.model.dto.response.LoginResponse;
 import org.eventix.authservice.model.dto.response.RefreshTokenResponse;
+import org.eventix.authservice.model.dto.response.TwoFaSetupResponse;
 import org.eventix.authservice.model.entity.OAuth2Identity;
 import org.eventix.authservice.model.entity.Session;
 import org.eventix.authservice.model.entity.User;
@@ -22,10 +26,13 @@ import org.eventix.authservice.repository.OAuth2IdentityRepository;
 import org.eventix.authservice.repository.SessionRepository;
 import org.eventix.authservice.repository.UserRepository;
 import org.eventix.authservice.security.OAuthAttributes;
+import org.eventix.authservice.security.RequestContext;
 import org.eventix.authservice.service.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -41,10 +48,18 @@ public class AuthServiceImpl implements AuthService {
     private final SessionService sessionService;
     private final SessionRepository sessionRepository;
     private final OAuth2IdentityRepository identityRepository;
+    private final TempTokenService tempTokenService;
+    private final TotpService totpService;
+    private final RateLimitService rateLimitService;
+    private final CryptoService cryptoService;
+    private final RecoveryCodeService recoveryCodeService;
 
     @Transactional
     @Override
-    public AuthResponse register(RegisterRequest request, String ip, String userAgent) {
+    public AuthResponse register(RegisterRequest request) {
+
+        String ip = RequestContext.getIp();
+        String userAgent = RequestContext.getUserAgent();
 
         log.debug("Register attempt for email={}, ip={}, userAgent={}",
                 request.email(), ip, userAgent);
@@ -67,31 +82,126 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional
     @Override
-    public AuthResponse login(LoginRequest request, String ip, String userAgent) {
+    public LoginResponse login(LoginRequest request) {
 
-        log.debug("Login attempt for email={}, ip={}", request.email(), ip);
+        String ip = RequestContext.getIp();
+        String userAgent = RequestContext.getUserAgent();
+
+        rateLimitService.checkLoginLimit(request.email());
 
         User user = userRepository.findByEmailAndStatus(
                         request.email(),
                         UserStatus.ACTIVE
                 )
                 .orElseThrow(() -> {
-                    log.warn("Login failed - user not found or inactive email={}", request.email());
+                    rateLimitService.recordLoginFail(request.email());
                     return new InvalidCredentialsException();
                 });
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            log.warn("Login failed - invalid password userId={}, email={}",
-                    user.getId(), user.getEmail());
+            rateLimitService.recordLoginFail(request.email());
             throw new InvalidCredentialsException();
         }
 
-        log.debug("User authenticated successfully userId={}", user.getId());
+        rateLimitService.resetLogin(request.email());
+
+        if (user.isTwoFactorEnabled()) {
+
+            String tempToken = tempTokenService.create(
+                    user.getId(),
+                    ip,
+                    userAgent
+            );
+
+            return new LoginResponse(true, tempToken, null);
+        }
 
         Session session = createSession(user, ip, userAgent);
 
-        log.info("Login successful userId={}, sessionId={}",
-                user.getId(), session.getId());
+        return new LoginResponse(
+                false,
+                null,
+                issueAuthResponse(user, session)
+        );
+    }
+
+    public TwoFaSetupResponse setup2fa(Long userId) {
+
+        User user = userRepository.findById(userId).orElseThrow();
+
+        String secret = totpService.generateSecret();
+
+        user.setTotpSecret(cryptoService.encrypt(secret));
+        userRepository.save(user);
+        String qrUri = totpService.getQrUri(secret, user.getEmail());
+
+        return new TwoFaSetupResponse(qrUri);
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse verify2fa(String tempToken, String code) {
+
+        TempLoginState state = validateTempTokenOrThrow(tempToken);
+
+        String ip = RequestContext.getIp();
+        String userAgent = RequestContext.getUserAgent();
+        String deviceId = RequestContext.getDeviceId();
+
+        Long userId = state.userId();
+
+        if (!Objects.equals(state.deviceId(), deviceId)) {
+            log.warn("Device mismatch userId={}", userId);
+        }
+
+        if (!Objects.equals(state.ip(), ip) || !Objects.equals(state.userAgent(), userAgent)) {
+            log.info("Context change userId={}", userId);
+        }
+
+        rateLimitService.check2faLimit(userId);
+        rateLimitService.checkRecoveryLimit(userId);
+
+        User user = getActiveUserOrThrow(userId);
+
+        String secret = decryptTotpSecretOrThrow(user);
+
+        boolean totpValid = totpService.verifyCode(secret, code);
+
+        boolean recoveryValid = false;
+        if (!totpValid) {
+            recoveryValid = recoveryCodeService.verifyRecoveryCode(userId, code);
+        }
+
+        if (!totpValid && !recoveryValid) {
+
+            rateLimitService.record2faFail(userId);
+            rateLimitService.recordRecoveryFail(userId);
+
+            int attempts = state.attempts() + 1;
+
+            if (attempts >= 5) {
+                tempTokenService.invalidate(tempToken);
+            } else {
+                tempTokenService.update(tempToken,
+                        new TempLoginState(
+                                state.userId(),
+                                state.deviceId(),
+                                state.ip(),
+                                state.userAgent(),
+                                attempts,
+                                state.createdAt()
+                        ));
+            }
+
+            throw new InvalidCredentialsException();
+        }
+
+        rateLimitService.reset2fa(userId);
+        rateLimitService.resetRecovery(userId);
+
+        tempTokenService.invalidate(tempToken);
+
+        Session session = createSession(user, ip, userAgent);
 
         return issueAuthResponse(user, session);
     }
@@ -139,6 +249,55 @@ public class AuthServiceImpl implements AuthService {
                 authMapper.mapToUserResponse(user)
         );
     }
+
+    private TempLoginState validateTempTokenOrThrow(String tempToken) {
+
+        if (tempToken == null || tempToken.isBlank()) {
+            throw new InvalidTempTokenException("tempToken is null/blank");
+        }
+
+        TempLoginState state = tempTokenService.validate(tempToken);
+
+        if (state == null) {
+            throw new InvalidTempTokenException("TempLoginState not found");
+        }
+
+        if (state.userId() == null) {
+            throw new InvalidTempTokenException("TempLoginState userId is null");
+        }
+
+        return state;
+    }
+
+    private User getActiveUserOrThrow(Long userId) {
+
+        return userRepository.findByIdAndStatus(userId, UserStatus.ACTIVE)
+                .orElseThrow(() ->
+                        new InvalidTempTokenException("User not found or inactive: " + userId)
+                );
+    }
+
+    private String decryptTotpSecretOrThrow(User user) {
+
+        if (user.getTotpSecret() == null || user.getTotpSecret().isBlank()) {
+            throw new IllegalStateException("2FA not initialized for userId=" + user.getId());
+        }
+
+        try {
+            String secret = cryptoService.decrypt(user.getTotpSecret());
+
+            if (secret == null || secret.isBlank()) {
+                throw new IllegalStateException("Decrypted TOTP secret is empty");
+            }
+
+            return secret;
+
+        } catch (Exception ex) {
+            log.error("TOTP decrypt failed userId={}", user.getId(), ex);
+            throw new IllegalStateException("TOTP decrypt error");
+        }
+    }
+
 
     private User createOAuthUser(String email) {
         return userRepository.save(

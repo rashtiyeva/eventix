@@ -47,6 +47,13 @@ public class User {
     @Column
     Instant deletedAt;
 
+    @Column(nullable = false)
+    private boolean twoFactorEnabled = false;
+
+    @Column(length = 255)
+    @JsonIgnore
+    private String totpSecret;
+
     @PrePersist
     public void prePersist() {
         Instant now = Instant.now();

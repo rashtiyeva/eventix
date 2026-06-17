@@ -7,3 +7,4 @@ spring:
       - classpath:properties/application-kafka.yml
       - classpath:properties/application-security.yml
       - classpath:properties/application-jwt.yml
+      - classpath:properties/application-redis.yml

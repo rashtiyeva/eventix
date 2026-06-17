@@ -15,3 +15,6 @@ spring:
             scope:
               - email
               - profile
+crypto:
+  aes:
+    key: ${AES_KEY}
