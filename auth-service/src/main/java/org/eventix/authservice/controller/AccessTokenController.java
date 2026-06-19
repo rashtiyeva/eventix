@@ -36,16 +36,4 @@ public class AccessTokenController {
                 new AccessTokenResponse(token)
         );
     }
-
-    @PostMapping("/claims")
-    public ResponseEntity<JwtClaims> extractClaims(
-            @Valid @RequestBody ValidateAccessTokenRequest request
-    ) {
-
-        JwtClaims claims = accessTokenService.extractClaims(
-                request.token()
-        );
-
-        return ResponseEntity.ok(claims);
-    }
 }
