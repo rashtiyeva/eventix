@@ -236,7 +236,7 @@ public class AuthServiceImpl implements AuthService {
         );
 
         String accessToken = accessTokenService.generateAccessToken(
-                user.getId().toString(),
+                user.getId(),
                 Set.of(user.getRole())
         );
 
@@ -390,7 +390,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getId(), session.getId());
 
         String accessToken = accessTokenService.generateAccessToken(
-                user.getId().toString(),
+                user.getId(),
                 Set.of(user.getRole())
         );
 
