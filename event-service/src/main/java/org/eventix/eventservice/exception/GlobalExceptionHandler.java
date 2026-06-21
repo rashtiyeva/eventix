@@ -8,6 +8,7 @@ import org.eventix.eventservice.exception.base.NotFoundException;
 import org.eventix.eventservice.model.dto.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -70,5 +71,11 @@ public class GlobalExceptionHandler {
 
         return buildErrorResponse(ex, HttpStatus.INTERNAL_SERVER_ERROR,
                 "INTERNAL_ERROR", request);
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<String> handleAccessDenied(AuthorizationDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("Access Denied");
     }
 }

@@ -15,6 +15,7 @@ import org.eventix.eventservice.service.EventService;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,6 +28,7 @@ public class EventController {
     private final AuthUser authUser;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','ORGANIZER')")
     public ResponseEntity<EventResponse> createEvent(
             @Valid @RequestBody EventCreateRequest request
     ) {
@@ -58,17 +60,24 @@ public class EventController {
             @RequestParam int page,
             @RequestParam int size
     ) {
-        log.debug("HTTP GET /events status={} page={} size={}", status, page, size);
-
-        Page<EventPreviewResponse> response = eventService.getEventsByStatus(
+        log.debug(
+                "HTTP GET /events status={} page={} size={}",
                 status,
-                new PageDetailDto(page, size)
+                page,
+                size
         );
+
+        Page<EventPreviewResponse> response =
+                eventService.getEventsByStatus(
+                        status,
+                        new PageDetailDto(page, size)
+                );
 
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','ORGANIZER')")
     public ResponseEntity<EventResponse> updateEvent(
             @PathVariable Long id,
             @Valid @RequestBody EventUpdateRequest request
@@ -77,12 +86,14 @@ public class EventController {
 
         Long userId = authUser.getUserId();
 
-        EventResponse response = eventService.updateEvent(id, userId, request);
+        EventResponse response =
+                eventService.updateEvent(id, userId, request);
 
         return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','ORGANIZER')")
     public ResponseEntity<EventResponse> patchEvent(
             @PathVariable Long id,
             @Valid @RequestBody EventPatchRequest request
@@ -91,12 +102,14 @@ public class EventController {
 
         Long userId = authUser.getUserId();
 
-        EventResponse response = eventService.patchEvent(id, userId, request);
+        EventResponse response =
+                eventService.patchEvent(id, userId, request);
 
         return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{id}/publish")
+    @PreAuthorize("hasAnyRole('ADMIN','ORGANIZER')")
     public ResponseEntity<EventResponse> publishEvent(
             @PathVariable Long id
     ) {
@@ -104,12 +117,14 @@ public class EventController {
 
         Long userId = authUser.getUserId();
 
-        EventResponse response = eventService.publishEvent(id, userId);
+        EventResponse response =
+                eventService.publishEvent(id, userId);
 
         return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('ADMIN','ORGANIZER')")
     public ResponseEntity<EventResponse> cancelEvent(
             @PathVariable Long id
     ) {
@@ -117,12 +132,14 @@ public class EventController {
 
         Long userId = authUser.getUserId();
 
-        EventResponse response = eventService.cancelEvent(id, userId);
+        EventResponse response =
+                eventService.cancelEvent(id, userId);
 
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteEvent(
             @PathVariable Long id
     ) {

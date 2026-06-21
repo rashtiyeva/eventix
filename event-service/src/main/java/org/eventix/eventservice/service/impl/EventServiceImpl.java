@@ -31,18 +31,25 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventResponse createEvent(EventCreateRequest request, Long organizerId) {
 
-        Event event = eventMapper.toEntity(request);
+        try {
 
-        event.setOrganizerId(organizerId);
-        event.setStatus(EventStatus.DRAFT);
+            Event event = eventMapper.toEntity(request);
 
-        if (event.getCapacity() == null || event.getCapacity() <= 0) {
-            event.setCapacity(1);
+            event.setOrganizerId(organizerId);
+            event.setStatus(EventStatus.DRAFT);
+
+            if (event.getCapacity() == null || event.getCapacity() <= 0) {
+                event.setCapacity(1);
+            }
+
+            Event saved = eventRepository.save(event);
+
+            return eventMapper.toResponse(saved);
+
+        } catch (Exception e) {
+            log.error("Create event failed", e);
+            throw e;
         }
-
-        Event saved = eventRepository.save(event);
-
-        return eventMapper.toResponse(saved);
     }
 
     @Override
