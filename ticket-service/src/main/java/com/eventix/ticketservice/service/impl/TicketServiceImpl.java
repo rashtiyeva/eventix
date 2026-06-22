@@ -1,7 +1,5 @@
 package com.eventix.ticketservice.service.impl;
 
-import com.eventix.ticketservice.client.EventClient;
-import com.eventix.ticketservice.event.TicketEventPublisher;
 import com.eventix.ticketservice.event.TicketReservedEvent;
 import com.eventix.ticketservice.exception.TicketAlreadyExistsException;
 import com.eventix.ticketservice.exception.TicketNotFoundException;
@@ -13,8 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.eventix.ticketservice.mapper.TicketMapper;
-import com.eventix.ticketservice.model.dto.EventDto;
-import com.eventix.ticketservice.model.dto.request.TicketPurchaseRequest;
 import com.eventix.ticketservice.model.dto.response.TicketResponse;
 import com.eventix.ticketservice.model.entity.Ticket;
 import com.eventix.ticketservice.model.enums.TicketStatus;
@@ -25,7 +21,6 @@ import com.eventix.ticketservice.repository.TicketRepository;
 import com.eventix.ticketservice.service.TicketService;
 
 import java.time.Instant;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -131,7 +126,9 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public void expire(Ticket ticket) {
+    public void expire(Long ticketId) {
+
+        Ticket ticket = get(ticketId);
 
         log.info(
                 "TICKET EXPIRING sagaId={}, ticketId={}",
@@ -140,6 +137,8 @@ public class TicketServiceImpl implements TicketService {
         );
 
         ticket.setStatus(TicketStatus.EXPIRED);
+
+        ticketRepository.save(ticket);
 
         log.warn(
                 "TICKET EXPIRED sagaId={}, ticketId={}",

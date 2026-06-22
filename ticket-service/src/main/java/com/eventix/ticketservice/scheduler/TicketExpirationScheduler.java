@@ -1,6 +1,5 @@
 package com.eventix.ticketservice.scheduler;
 
-import com.eventix.ticketservice.event.TicketEventPublisher;
 import com.eventix.ticketservice.service.TicketService;
 import lombok.RequiredArgsConstructor;
 import com.eventix.ticketservice.model.entity.Ticket;
@@ -10,9 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import com.eventix.ticketservice.repository.TicketRepository;
-
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
@@ -27,14 +24,17 @@ public class TicketExpirationScheduler {
     @Transactional
     public void expireTickets() {
 
-        List<Ticket> expired = repository
+        List<Long> expiredTicketIds = repository
                 .findAllByStatusAndExpiresAtBefore(
                         TicketStatus.RESERVED,
                         Instant.now()
-                );
+                )
+                .stream()
+                .map(Ticket::getId)
+                .toList();
 
-        for (Ticket t : expired) {
-            ticketService.expire(t);
+        for (Long ticketId : expiredTicketIds) {
+            ticketService.expire(ticketId);
         }
     }
 }

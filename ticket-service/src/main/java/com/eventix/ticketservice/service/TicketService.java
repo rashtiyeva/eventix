@@ -14,5 +14,5 @@ public interface TicketService {
 
     void cancel(Long ticketId);
 
-    void expire(Ticket ticket);
+    void expire(Long ticketId);
 }
