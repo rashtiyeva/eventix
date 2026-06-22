@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: 03-add-version-column-to-events
+      author: event-service
+
+      changes:
+        - addColumn:
+            tableName: events
+            columns:
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false

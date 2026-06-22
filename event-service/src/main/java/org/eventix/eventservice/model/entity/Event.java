@@ -42,6 +42,9 @@ public class Event {
     Integer capacity;
 
     @Column(nullable = false)
+    Integer reserved = 0;
+
+    @Column(nullable = false)
     Long organizerId;
 
     @Enumerated(EnumType.STRING)
@@ -56,6 +59,10 @@ public class Event {
 
     @Column
     Instant deletedAt;
+
+    @Version
+    @Column(nullable = false)
+    Long version;
 
     @PrePersist
     public void prePersist() {

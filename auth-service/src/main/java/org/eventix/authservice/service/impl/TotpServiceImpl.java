@@ -1,6 +1,7 @@
 package org.eventix.authservice.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.eventix.authservice.service.TotpService;
 import org.jboss.aerogear.security.otp.Totp;
 import org.jboss.aerogear.security.otp.api.Base32;
@@ -11,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TotpServiceImpl implements TotpService {
 
     @Value("${app.name:Eventix}")

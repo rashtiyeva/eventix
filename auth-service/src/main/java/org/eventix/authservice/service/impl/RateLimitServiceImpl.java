@@ -1,6 +1,7 @@
 package org.eventix.authservice.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.eventix.authservice.exception.TooMany2faAttemptsException;
 import org.eventix.authservice.exception.TooManyLoginAttemptsException;
 import org.eventix.authservice.security.RequestContext;
@@ -11,6 +12,7 @@ import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RateLimitServiceImpl implements RateLimitService {
 
     private final StringRedisTemplate redisTemplate;

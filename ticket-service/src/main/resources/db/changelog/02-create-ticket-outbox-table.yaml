@@ -1,0 +1,64 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 02-create-ticket-outbox-table
+      author: ticker-service
+
+      changes:
+
+        - createTable:
+            tableName: ticket_outbox
+
+            columns:
+
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: aggregate_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: event_type
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: payload
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            tableName: ticket_outbox
+            indexName: idx_outbox_status
+            columns:
+              - column:
+                  name: status
+
+        - createIndex:
+            tableName: ticket_outbox
+            indexName: idx_outbox_created_at
+            columns:
+              - column:
+                  name: created_at

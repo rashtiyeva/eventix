@@ -2,7 +2,7 @@ package org.eventix.eventservice.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.eventix.eventservice.exception.EventNotFoundException;
+import org.eventix.eventservice.exception.*;
 import org.eventix.eventservice.mapper.EventMapper;
 import org.eventix.eventservice.model.dto.PageDetailDto;
 import org.eventix.eventservice.model.dto.request.EventCreateRequest;
@@ -17,142 +17,181 @@ import org.eventix.eventservice.service.EventService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
 
+
     @Override
     public EventResponse createEvent(EventCreateRequest request, Long organizerId) {
 
-        try {
+        log.info("Creating event organizerId={}", organizerId);
 
-            Event event = eventMapper.toEntity(request);
+        Event event = eventMapper.toEntity(request);
 
-            event.setOrganizerId(organizerId);
-            event.setStatus(EventStatus.DRAFT);
+        event.setOrganizerId(organizerId);
+        event.setStatus(EventStatus.DRAFT);
 
-            if (event.getCapacity() == null || event.getCapacity() <= 0) {
-                event.setCapacity(1);
-            }
-
-            Event saved = eventRepository.save(event);
-
-            return eventMapper.toResponse(saved);
-
-        } catch (Exception e) {
-            log.error("Create event failed", e);
-            throw e;
+        if (event.getCapacity() == null || event.getCapacity() <= 0) {
+            event.setCapacity(1);
         }
+
+        Event saved = eventRepository.save(event);
+
+        log.info("Event created id={}, organizerId={}", saved.getId(), organizerId);
+
+        return eventMapper.toResponse(saved);
     }
+
 
     @Override
     public Page<EventPreviewResponse> getEventsByStatus(EventStatus status, PageDetailDto pageDetail) {
 
         PageRequest pageable = getDefaultPageable(pageDetail.page(), pageDetail.size());
 
-        Page<Event> events = eventRepository.findAllByStatus(status, pageable);
-
-        return events.map(eventMapper::toPreview);
+        return eventRepository
+                .findAllByStatusAndDeletedAtIsNull(status, pageable)
+                .map(eventMapper::toPreview);
     }
 
     @Override
     public EventResponse getEvent(Long id) {
 
-        Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new EventNotFoundException(id));
+        Event event = findActiveEvent(id);
 
         return eventMapper.toResponse(event);
     }
 
+
     @Override
     public EventResponse updateEvent(Long id, Long userId, EventUpdateRequest request) {
 
-        Event event = getOwnedEvent(id, userId);
+        Event event = getOwnedActiveEvent(id, userId);
 
-        if (event.getStatus() == EventStatus.PUBLISHED) {
-            throw new IllegalStateException("Published event cannot be fully updated");
-        }
+        ensureUpdatable(event);
 
         eventMapper.updateFromRequest(request, event);
 
-        Event updated = eventRepository.save(event);
+        Event saved = eventRepository.save(event);
 
-        return eventMapper.toResponse(updated);
+        log.info("Event updated id={}, userId={}", id, userId);
+
+        return eventMapper.toResponse(saved);
     }
 
     @Override
     public EventResponse patchEvent(Long id, Long userId, EventPatchRequest request) {
 
-        Event event = getOwnedEvent(id, userId);
+        Event event = getOwnedActiveEvent(id, userId);
 
-        if (event.getStatus() == EventStatus.CANCELLED) {
-            throw new IllegalStateException("Cancelled event cannot be modified");
-        }
+        ensureUpdatable(event);
 
         eventMapper.patchFromRequest(request, event);
 
-        Event updated = eventRepository.save(event);
+        Event saved = eventRepository.save(event);
 
-        return eventMapper.toResponse(updated);
+        log.info("Event patched id={}, userId={}", id, userId);
+
+        return eventMapper.toResponse(saved);
     }
+
 
     @Override
     public EventResponse publishEvent(Long id, Long userId) {
 
-        Event event = getOwnedEvent(id, userId);
+        Event event = getOwnedActiveEvent(id, userId);
 
         if (event.getStatus() != EventStatus.DRAFT) {
-            throw new IllegalStateException("Only DRAFT events can be published");
+            throw new EventPublishNotAllowedException("Only DRAFT events can be published");
         }
 
         event.setStatus(EventStatus.PUBLISHED);
 
-        Event updated = eventRepository.save(event);
+        Event saved = eventRepository.save(event);
 
-        return eventMapper.toResponse(updated);
+        log.info("Event published id={}, userId={}", id, userId);
+
+        return eventMapper.toResponse(saved);
     }
 
     @Override
     public EventResponse cancelEvent(Long id, Long userId) {
 
-        Event event = getOwnedEvent(id, userId);
+        Event event = getOwnedActiveEvent(id, userId);
 
         if (event.getStatus() == EventStatus.CANCELLED) {
             return eventMapper.toResponse(event);
         }
 
         event.setStatus(EventStatus.CANCELLED);
+        event.setDeletedAt(Instant.now());
 
-        Event updated = eventRepository.save(event);
+        Event saved = eventRepository.save(event);
 
-        return eventMapper.toResponse(updated);
+        log.info("Event cancelled id={}, userId={}", id, userId);
+
+        return eventMapper.toResponse(saved);
     }
+
 
     @Override
     public void deleteEvent(Long id, Long userId) {
 
-        Event event = getOwnedEvent(id, userId);
+        Event event = getOwnedActiveEvent(id, userId);
 
-        eventRepository.delete(event);
+        if (event.getStatus() != EventStatus.DRAFT) {
+            throw new EventDeletionNotAllowedException("Only DRAFT events can be deleted");
+        }
+
+        if (event.getEndTime().isBefore(LocalDateTime.now())) {
+            throw new EventDeletionNotAllowedException("Cannot delete finished event");
+        }
+
+        event.setStatus(EventStatus.CANCELLED);
+        event.setDeletedAt(Instant.now());
+
+        eventRepository.save(event);
+
+        log.info("Event deleted id={}, userId={}", id, userId);
     }
 
-    private Event getOwnedEvent(Long eventId, Long userId) {
+    private Event findActiveEvent(Long id) {
 
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new EventNotFoundException(eventId));
+        return eventRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new EventNotFoundException(id));
+    }
+
+    private Event getOwnedActiveEvent(Long eventId, Long userId) {
+
+        Event event = findActiveEvent(eventId);
 
         if (!event.getOrganizerId().equals(userId)) {
-            throw new AccessDeniedException("You are not the owner of this event");
+            throw new EventAccessDeniedException(eventId, userId);
         }
 
         return event;
+    }
+
+    private void ensureUpdatable(Event event) {
+
+        if (event.getStatus() == EventStatus.CANCELLED) {
+            throw new EventUpdateNotAllowedException("Cancelled event cannot be modified");
+        }
+
+        if (event.getStatus() == EventStatus.PUBLISHED) {
+            throw new EventUpdateNotAllowedException("Published event cannot be fully modified");
+        }
     }
 
     private static PageRequest getDefaultPageable(int page, int size) {
@@ -166,5 +205,4 @@ public class EventServiceImpl implements EventService {
                 Sort.by("createdAt").descending()
         );
     }
-
 }

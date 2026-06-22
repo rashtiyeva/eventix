@@ -33,7 +33,6 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // ================= Swagger / OpenAPI =================
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
@@ -42,10 +41,8 @@ public class SecurityConfig {
                                 "/webjars/**"
                         ).permitAll()
 
-                        // ================= Public GET endpoints =================
                         .requestMatchers(HttpMethod.GET, "/v1/events/**").permitAll()
 
-                        // ================= Everything else secured =================
                         .anyRequest().authenticated()
                 )
 
@@ -56,26 +53,5 @@ public class SecurityConfig {
                 );
 
         return http.build();
-    }
-
-    @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter() {
-
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-
-        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-
-            List<String> roles = jwt.getClaimAsStringList("roles");
-
-            if (roles == null) {
-                return Collections.emptyList();
-            }
-
-            return roles.stream()
-                    .map(role -> (GrantedAuthority) new SimpleGrantedAuthority("ROLE_" + role))
-                    .toList();
-        });
-
-        return converter;
     }
 }

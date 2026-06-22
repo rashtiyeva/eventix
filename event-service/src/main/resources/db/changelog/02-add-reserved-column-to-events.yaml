@@ -1,0 +1,17 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 02-add-reserved-column-to-events
+      author: event-service
+
+      changes:
+
+        - addColumn:
+            tableName: events
+            columns:
+              - column:
+                  name: reserved
+                  type: INTEGER
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false

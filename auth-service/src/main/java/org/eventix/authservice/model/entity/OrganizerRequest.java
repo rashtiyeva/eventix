@@ -3,7 +3,6 @@ package org.eventix.authservice.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.eventix.authservice.model.enums.RequestStatus;
-
 import java.time.Instant;
 
 @Entity

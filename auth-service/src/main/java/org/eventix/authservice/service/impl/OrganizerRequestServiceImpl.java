@@ -1,6 +1,7 @@
 package org.eventix.authservice.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.eventix.authservice.model.entity.OrganizerRequest;
 import org.eventix.authservice.model.entity.User;
 import org.eventix.authservice.model.enums.RequestStatus;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrganizerRequestServiceImpl implements OrganizerRequestService {
 
     private final OrganizerRequestRepository repository;

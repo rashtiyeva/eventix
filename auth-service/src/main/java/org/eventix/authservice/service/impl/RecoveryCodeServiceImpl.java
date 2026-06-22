@@ -2,6 +2,7 @@ package org.eventix.authservice.service.impl;
 
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.eventix.authservice.model.entity.RecoveryCode;
 import org.eventix.authservice.model.entity.User;
 import org.eventix.authservice.repository.RecoveryCodeRepository;
@@ -14,6 +15,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RecoveryCodeServiceImpl implements RecoveryCodeService {
 
     private final RecoveryCodeRepository repository;

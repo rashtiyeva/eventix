@@ -1,0 +1,52 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 18-create-organizer-requests-table
+      author:  auth-service
+
+      changes:
+
+        - createTable:
+            tableName: organizer_requests
+
+            columns:
+
+              - column:
+                  name: id
+                  type: BIGSERIAL
+
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: user_id
+                  type: BIGINT
+
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: reason
+                  type: VARCHAR(500)
+
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+
+                  constraints:
+                    nullable: false

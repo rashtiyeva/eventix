@@ -1,0 +1,87 @@
+databaseChangeLog:
+  - changeSet:
+      id: 01-create-tickets-table
+      author: ticker-service
+
+      changes:
+        - createTable:
+            tableName: tickets
+            columns:
+
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: event_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            tableName: tickets
+            columnNames: user_id,event_id
+            constraintName: uk_ticket_user_event
+
+        - createIndex:
+            tableName: tickets
+            indexName: idx_ticket_user_id
+            columns:
+              - column:
+                  name: user_id
+
+        - createIndex:
+            tableName: tickets
+            indexName: idx_ticket_event_id
+            columns:
+              - column:
+                  name: event_id
+
+        - createIndex:
+            tableName: tickets
+            indexName: idx_ticket_status
+            columns:
+              - column:
+                  name: status
+
+        - createIndex:
+            tableName: tickets
+            indexName: idx_ticket_expires_at
+            columns:
+              - column:
+                  name: expires_at

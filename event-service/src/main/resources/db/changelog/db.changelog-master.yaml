@@ -1,3 +1,9 @@
 databaseChangeLog:
   - include:
       file: db/changelog/01-create-events-table.yaml
+
+  - include:
+      file: db/changelog/02-add-reserved-column-to-events.yaml
+
+  - include:
+      file: db/changelog/03-add-version-column-to-events.yaml

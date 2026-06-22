@@ -2,6 +2,7 @@ package org.eventix.authservice.service.impl;
 
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.eventix.authservice.exception.InvalidTempTokenException;
 import org.eventix.authservice.model.dto.TempLoginState;
 import org.eventix.authservice.security.RequestContext;
@@ -15,6 +16,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TempTokenServiceImpl implements TempTokenService {
 
     private final StringRedisTemplate redisTemplate;
