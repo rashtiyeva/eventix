@@ -53,20 +53,20 @@ Eventix is a secure ticketing platform where users can sign in (including Google
 
 ---
 
-## 🔧 Services
+## 🟥 Services
 
 | Service | Port | Responsibility |
 |----------|------|----------------|
-| **🔏 Auth Service** | 8087 | Identity management, JWT security, OAuth2 login, refresh token rotation, session management, RBAC, TOTP-based 2FA and security enforcement |
-| **🪩 Event Service** | 8088 | Event lifecycle management, publishing workflow, reservation validation, seat allocation and event orchestration |
-| **📩 Notification Service** | 8089 | Asynchronous notification processing, email delivery and communication audit trail |
-| **🎫 Ticket Service** | 8090 | Ticket reservation, confirmation, cancellation, expiration handling and Saga participation |
-| **⚙️ Infra Service** | 8091 | Infrastructure orchestration, containerized deployment, environment configuration and platform provisioning |
+| ** Auth Service** | 8087 | Identity management, JWT security, OAuth2 login, refresh token rotation, session management, RBAC, TOTP-based 2FA and security enforcement |
+| ** Event Service** | 8088 | Event lifecycle management, publishing workflow, reservation validation, seat allocation and event orchestration |
+| ** Notification Service** | 8089 | Asynchronous notification processing, email delivery and communication audit trail |
+| ** Ticket Service** | 8090 | Ticket reservation, confirmation, cancellation, expiration handling and Saga participation |
+| ** Infra Service** | 8091 | Infrastructure orchestration, containerized deployment, environment configuration and platform provisioning |
 ---
 
-## 🩸 Service-Level Design Decisions
+## 🟥 Service-Level Design Decisions
 
-### 🔐 Authentication Service
+###  Authentication Service
 
 The Authentication Service is designed as the platform’s security boundary, responsible for authentication, authorization, session management, and account protection.
 
@@ -81,7 +81,7 @@ This results in a secure, scalable, and isolated authentication layer independen
 
 ---
 
-### 🎟 Event & Ticket Services
+###  Event & Ticket Services
 
 Event and Ticket services are separated into independent bounded contexts and communicate through asynchronous messaging.
 
@@ -95,7 +95,7 @@ Together, these services implement a resilient and scalable reservation workflow
 
 ---
 
-### 📨 Notification Service
+###  Notification Service
 
 The Notification Service is isolated from core business logic and acts as an event-driven communication consumer.
 
@@ -108,7 +108,7 @@ This ensures reliable and scalable user communication without affecting transact
 
 ---
 
-### ☁️ Infrastructure Layer
+###  Infrastructure Layer
 
 The Infrastructure layer manages deployment, configuration, and environment consistency across all services.
 
@@ -170,7 +170,7 @@ Organizer receives updates about event activity
 ```
 ---
 
-## 🚀 Quickstart (Docker)
+## 🟥 Quickstart (Docker)
 
 ```bash
 docker compose up -d --build
