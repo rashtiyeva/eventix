@@ -11,7 +11,7 @@ spring:
         enable.idempotence: true
 
     consumer:
-      group-id: auth-service-group
+      group-id: event-service-group
       auto-offset-reset: earliest
 
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
