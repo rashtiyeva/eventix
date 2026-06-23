@@ -16,6 +16,15 @@ public class AuthUser {
         return jwt.getClaim("userId");
     }
 
+    public String getEmail() {
+        Jwt jwt = (Jwt) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        return jwt.getClaim("email");
+    }
+
     public String getRole() {
         Jwt jwt = (Jwt) SecurityContextHolder
                 .getContext()

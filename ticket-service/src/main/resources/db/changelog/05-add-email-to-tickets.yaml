@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: 05-add-email-to-tickets
+      author: ticket-service
+
+      changes:
+        - addColumn:
+            tableName: tickets
+            columns:
+              - column:
+                  name: email
+                  type: varchar(255)
+
+      rollback:
+        - dropColumn:
+            tableName: tickets
+            columnName: email

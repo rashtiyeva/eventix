@@ -44,6 +44,7 @@ dependencies {
     implementation 'org.jboss.aerogear:aerogear-otp-java:1.0.0'
     testImplementation 'com.h2database:h2'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'org.springframework.kafka:spring-kafka'
 }
 
 test {

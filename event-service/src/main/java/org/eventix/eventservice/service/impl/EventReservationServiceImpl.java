@@ -113,7 +113,7 @@ public class EventReservationServiceImpl implements EventReservationService {
                     new TicketConfirmedEvent(
                             event.ticketId(),
                             event.userId(),
-                            event.eventId(),
+                            event.email(),
                             event.sagaId()
                     );
 
@@ -143,8 +143,9 @@ public class EventReservationServiceImpl implements EventReservationService {
                             event.ticketId(),
                             event.userId(),
                             event.eventId(),
-                            event.sagaId(),
-                            reason
+                            event.email(),
+                            reason,
+                            event.sagaId()
                     );
 
             kafkaTemplate.send(

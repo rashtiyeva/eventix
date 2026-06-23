@@ -6,4 +6,6 @@ logging:
     liquibase: INFO
     org.springframework.security: DEBUG
     org.springframework.security.oauth2: DEBUG
+    org.springframework.kafka: DEBUG
+    org.apache.kafka: INFO
 

@@ -7,6 +7,7 @@ import com.eventix.ticketservice.exception.TicketOutboxSerializationException;
 import com.eventix.ticketservice.model.entity.TicketOutboxEvent;
 import com.eventix.ticketservice.model.enums.OutboxStatus;
 import com.eventix.ticketservice.repository.TicketOutboxRepository;
+import com.eventix.ticketservice.security.AuthUser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,15 +33,25 @@ public class TicketServiceImpl implements TicketService {
     private final TicketOutboxRepository outboxRepository;
     private final TicketMapper ticketMapper;
     private final ObjectMapper objectMapper;
+    private final AuthUser authUser;
 
     @Override
-    public TicketResponse purchase(Long userId, Long eventId) {
+    public TicketResponse purchase(Long eventId) {
 
-        log.info("Purchasing ticket: userId={}, eventId={}", userId, eventId);
+        Long userId = authUser.getUserId();
+        String email = authUser.getEmail();
+
+        log.info(
+                "Purchasing ticket: userId={}, eventId={}",
+                userId,
+                eventId
+        );
 
         try {
+
             Ticket ticket = Ticket.builder()
                     .userId(userId)
+                    .email(email)
                     .eventId(eventId)
                     .status(TicketStatus.RESERVED)
                     .build();
@@ -57,8 +68,9 @@ public class TicketServiceImpl implements TicketService {
 
             TicketReservedEvent event = new TicketReservedEvent(
                     ticket.getId(),
-                    userId,
-                    eventId,
+                    ticket.getEventId(),
+                    ticket.getUserId(),
+                    ticket.getEmail(),
                     ticket.getSagaId()
             );
 

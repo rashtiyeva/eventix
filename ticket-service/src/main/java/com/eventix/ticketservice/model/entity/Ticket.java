@@ -49,6 +49,9 @@ public class Ticket {
     @Version
     Long version;
 
+    @Column(nullable = false)
+    String email;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = Instant.now();

@@ -59,7 +59,6 @@ public class User {
         Instant now = Instant.now();
         this.createdAt = now;
         this.updatedAt = now;
-        this.deletedAt = now;
     }
 
     @PreUpdate

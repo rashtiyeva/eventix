@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eventix.authservice.event.UserDeletedEvent;
 import org.eventix.authservice.exception.UserNotFoundException;
+import org.eventix.authservice.kafka.AuthEventProducer;
 import org.eventix.authservice.mapper.UserMapper;
 import org.eventix.authservice.model.dto.request.UserUpdateRequest;
 import org.eventix.authservice.model.dto.response.UserResponse;
@@ -25,7 +26,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
-    private final ApplicationEventPublisher eventPublisher;
+    private final AuthEventProducer authEventProducer;
 
     @Override
     @Transactional(readOnly = true)
@@ -89,10 +90,11 @@ public class UserServiceImpl implements UserService {
 
         log.info("User marked as deleted id={}", id);
 
-        eventPublisher.publishEvent(new UserDeletedEvent(id));
+        authEventProducer.publishUserDeleted(id);
 
         log.info("UserDeletedEvent published for user id={}", id);
     }
+
 
     @Transactional
     @Override

@@ -1,3 +1,8 @@
 package org.eventix.authservice.event;
 
-public record UserDeletedEvent(Long userId) {}
+import java.time.Instant;
+
+public record UserDeletedEvent(
+        Long userId,
+        Instant deletedAt
+) {}

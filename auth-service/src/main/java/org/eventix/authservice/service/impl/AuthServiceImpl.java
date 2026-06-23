@@ -8,6 +8,7 @@ import org.eventix.authservice.exception.EmailAlreadyExistsException;
 import org.eventix.authservice.exception.InvalidCredentialsException;
 import org.eventix.authservice.exception.InvalidTempTokenException;
 import org.eventix.authservice.exception.SessionNotFoundException;
+import org.eventix.authservice.kafka.AuthEventProducer;
 import org.eventix.authservice.mapper.AuthMapper;
 import org.eventix.authservice.model.dto.TempLoginState;
 import org.eventix.authservice.model.dto.request.LoginRequest;
@@ -53,6 +54,7 @@ public class AuthServiceImpl implements AuthService {
     private final RateLimitService rateLimitService;
     private final CryptoService cryptoService;
     private final RecoveryCodeService recoveryCodeService;
+    private final AuthEventProducer authEventProducer;
 
     @Transactional
     @Override
@@ -76,6 +78,12 @@ public class AuthServiceImpl implements AuthService {
 
         log.debug("Session created for new user userId={}, sessionId={}",
                 savedUser.getId(), session.getId());
+
+        authEventProducer.publishUserRegistered(
+                savedUser.getId(),
+                savedUser.getEmail(),
+                savedUser.getRole().name()
+        );
 
         return issueAuthResponse(savedUser, session);
     }

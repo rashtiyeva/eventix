@@ -27,12 +27,10 @@ public class TicketController {
     public ResponseEntity<TicketResponse> purchase(
             @RequestParam @NotNull Long eventId
     ) {
+
         log.debug("HTTP POST /tickets/purchase eventId={}", eventId);
 
-        Long userId = authUser.getUserId();
-
-        TicketResponse response =
-                ticketService.purchase(userId, eventId);
+        TicketResponse response = ticketService.purchase(eventId);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)

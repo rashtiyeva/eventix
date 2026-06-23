@@ -1,13 +1,33 @@
 spring:
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
 
     consumer:
-      group-id: auth-service-group
+      group-id: notification-service-group
       auto-offset-reset: earliest
+      enable-auto-commit: false
+
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+      max-poll-records: 10
+
+      properties:
+        session.timeout.ms: 45000
+        heartbeat.interval.ms: 3000
+        max.poll.interval.ms: 300000
+
+        # JSON config (ВАЖНО)
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: true
+
+        # safe defaults for transactional/clean processing
+        isolation.level: read_committed

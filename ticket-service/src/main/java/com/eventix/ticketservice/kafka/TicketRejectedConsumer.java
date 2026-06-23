@@ -39,7 +39,6 @@ public class TicketRejectedConsumer {
                     .orElseThrow(() ->
                             new RuntimeException("Ticket not found: " + event.ticketId()));
 
-            // idempotency guard
             if (ticket.getStatus() == TicketStatus.CANCELLED) {
 
                 log.info(
@@ -51,7 +50,6 @@ public class TicketRejectedConsumer {
                 return;
             }
 
-            // business rule validation
             if (ticket.getStatus() == TicketStatus.CONFIRMED) {
 
                 log.warn(

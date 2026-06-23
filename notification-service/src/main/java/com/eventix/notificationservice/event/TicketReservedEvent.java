@@ -1,4 +1,4 @@
-package com.eventix.ticketservice.event;
+package com.eventix.notificationservice.event;
 
 public record TicketReservedEvent(
         Long ticketId,

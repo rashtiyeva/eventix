@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface TicketService {
 
-    TicketResponse purchase(Long userId, Long eventId);
+    TicketResponse purchase(Long eventId);
 
     void confirm(Long ticketId);
 

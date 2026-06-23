@@ -5,3 +5,5 @@ spring:
       - classpath:properties/application-kafka.yml
       - classpath:properties/application-redis.yml
       - classpath:properties/application-logging.yml
+      - classpath:properties/application-db.yml
+      - classpath:properties/application-mail.yml

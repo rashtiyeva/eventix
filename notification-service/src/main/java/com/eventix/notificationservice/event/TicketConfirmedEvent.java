@@ -1,4 +1,4 @@
-package org.eventix.eventservice.event;
+package com.eventix.notificationservice.event;
 
 public record TicketConfirmedEvent(
         Long ticketId,

@@ -29,17 +29,15 @@ public class TicketConfirmedConsumer {
                     objectMapper.readValue(message, TicketConfirmedEvent.class);
 
             log.info(
-                    "TICKET CONFIRMATION START sagaId={}, ticketId={}, eventId={}",
+                    "TICKET CONFIRMATION START sagaId={}, ticketId={}",
                     event.sagaId(),
-                    event.ticketId(),
-                    event.eventId()
+                    event.ticketId()
             );
 
             Ticket ticket = ticketRepository.findById(event.ticketId())
                     .orElseThrow(() ->
                             new RuntimeException("Ticket not found: " + event.ticketId()));
 
-            // idempotency guard
             if (ticket.getStatus() == TicketStatus.CONFIRMED) {
 
                 log.info(
@@ -51,7 +49,6 @@ public class TicketConfirmedConsumer {
                 return;
             }
 
-            // state transition validation
             if (ticket.getStatus() != TicketStatus.RESERVED) {
 
                 log.warn(
@@ -66,19 +63,17 @@ public class TicketConfirmedConsumer {
 
             ticket.setStatus(TicketStatus.CONFIRMED);
 
+            ticketRepository.save(ticket);
+
             log.info(
-                    "TICKET CONFIRMED sagaId={}, ticketId={}, eventId={}",
+                    "TICKET CONFIRMED sagaId={}, ticketId={}",
                     event.sagaId(),
-                    ticket.getId(),
-                    event.eventId()
+                    ticket.getId()
             );
 
         } catch (Exception e) {
 
-            log.error(
-                    "TICKET CONFIRMATION FAILED",
-                    e
-            );
+            log.error("TICKET CONFIRMATION FAILED", e);
 
             throw new RuntimeException(e);
         }

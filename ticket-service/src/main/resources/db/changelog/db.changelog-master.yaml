@@ -12,3 +12,6 @@ databaseChangeLog:
   - include:
       file: db/changelog/04-add-saga-id-to-ticket-outbox.yaml
 
+  - include:
+      file: db/changelog/05-add-email-to-tickets.yaml
+
